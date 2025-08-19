@@ -2,10 +2,10 @@
   "builds": [
     {
       "src": ".next/**",
-      "use": "@vercel/static-build"
+      "use": "@vercel/next"
     }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/.next/$1" }
-  ]
+  "build": {
+    "env": {}
+  }
 }
