@@ -1,11 +1,8 @@
 {
   "builds": [
-    {
-      "src": ".next/**",
-      "use": "@vercel/next"
-    }
+    { "src": ".next/**", "use": "@vercel/next" }
   ],
-  "build": {
-    "env": {}
-  }
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
