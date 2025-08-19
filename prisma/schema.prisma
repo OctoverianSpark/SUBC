@@ -1,0 +1,230 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects Project[]
+}
+
+model Subcontractor {
+  id             Int      @id @default(autoincrement())
+  name           String
+  representative String?
+  phone          String?
+  email          String?
+  address        String?
+  licenseValid   Boolean  @default(true)
+  insuranceValid Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // asignaciones a proyectos (N:N)
+  assignments ProjectSubcontractor[]
+
+  // registros operativos vinculados al subcontratista
+  estimates  Estimate[]
+  contracts  Contract[]
+  bonds      Bond[]
+  insurances Insurance[]
+  licenses   License[]
+  materials  Material[]
+  billings   Billing[]
+  payrolls   Payroll[]
+  documents  Document[]
+  Closeout   Closeout[]
+}
+
+model Project {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      ProjectStatus @default(PLANNED)
+
+  // dueño/creador (opcional, si quieres)
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  // relación N:N con Subcontractor
+  assignments ProjectSubcontractor[]
+
+  // módulos del proyecto
+  estimates  Estimate[]
+  contracts  Contract[]
+  bonds      Bond[]
+  insurances Insurance[]
+  licenses   License[]
+  materials  Material[]
+  billings   Billing[]
+  payrolls   Payroll[]
+  closeouts  Closeout[]
+  documents  Document[]
+}
+
+model ProjectSubcontractor {
+  id              Int      @id @default(autoincrement())
+  projectId       Int
+  subcontractorId Int
+  assignedAt      DateTime @default(now())
+
+  project       Project       @relation(fields: [projectId], references: [id])
+  subcontractor Subcontractor @relation(fields: [subcontractorId], references: [id])
+
+  @@unique([projectId, subcontractorId]) // evita duplicados
+}
+
+model Estimate {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  details   String?
+  createdAt DateTime @default(now())
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Contract {
+  id       Int       @id @default(autoincrement())
+  number   String
+  details  String?
+  signedAt DateTime?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Bond {
+  id       Int       @id @default(autoincrement())
+  type     String
+  amount   Float
+  issuedAt DateTime?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Insurance {
+  id        Int       @id @default(autoincrement())
+  provider  String
+  policy    String
+  validTill DateTime?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model License {
+  id        Int       @id @default(autoincrement())
+  type      String
+  number    String
+  validTill DateTime?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Material {
+  id        Int     @id @default(autoincrement())
+  name      String
+  approved  Boolean @default(false)
+  ordered   Boolean @default(false)
+  delivered Boolean @default(false)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Billing {
+  id       Int      @id @default(autoincrement())
+  amount   Float
+  issuedAt DateTime @default(now())
+  paid     Boolean  @default(false)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Payroll {
+  id        Int     @id @default(autoincrement())
+  week      String
+  amount    Float
+  certified Boolean @default(false)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Closeout {
+  id        Int     @id @default(autoincrement())
+  details   String?
+  completed Boolean @default(false)
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  title      String
+  path       String
+  uploadedAt DateTime @default(now())
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  subcontractorId Int?
+  subcontractor   Subcontractor? @relation(fields: [subcontractorId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
