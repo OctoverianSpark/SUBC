@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/auth/confirm/page": "/auth/confirm",
+  "/auth/signup/page": "/auth/signup",
+  "/auth/login/page": "/auth/login",
+  "/billing/page": "/billing",
+  "/contracts/page": "/contracts",
+  "/dashboard/page": "/dashboard",
+  "/auth/verify-email/page": "/auth/verify-email",
+  "/billing/invoices/new/page": "/billing/invoices/new",
+  "/estimates/new/page": "/estimates/new",
+  "/estimates/page": "/estimates",
+  "/materials/page": "/materials",
+  "/materials/orders/new/page": "/materials/orders/new",
+  "/page": "/",
+  "/payroll/page": "/payroll",
+  "/projects/new/page": "/projects/new",
+  "/projects/page": "/projects",
+  "/subcontractors/new/page": "/subcontractors/new",
+  "/payroll/run/page": "/payroll/run",
+  "/subcontractors/page": "/subcontractors"
+}

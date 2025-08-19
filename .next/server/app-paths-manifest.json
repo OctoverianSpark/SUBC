@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/confirm/page": "app/auth/confirm/page.js",
+  "/auth/signup/page": "app/auth/signup/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/billing/page": "app/billing/page.js",
+  "/contracts/page": "app/contracts/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/auth/verify-email/page": "app/auth/verify-email/page.js",
+  "/billing/invoices/new/page": "app/billing/invoices/new/page.js",
+  "/estimates/new/page": "app/estimates/new/page.js",
+  "/estimates/page": "app/estimates/page.js",
+  "/materials/page": "app/materials/page.js",
+  "/materials/orders/new/page": "app/materials/orders/new/page.js",
+  "/page": "app/page.js",
+  "/payroll/page": "app/payroll/page.js",
+  "/projects/new/page": "app/projects/new/page.js",
+  "/projects/page": "app/projects/page.js",
+  "/subcontractors/new/page": "app/subcontractors/new/page.js",
+  "/payroll/run/page": "app/payroll/run/page.js",
+  "/subcontractors/page": "app/subcontractors/page.js"
+}
