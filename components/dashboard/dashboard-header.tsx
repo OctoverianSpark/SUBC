@@ -51,7 +51,7 @@ export default function DashboardHeader () {
                 <Avatar className='h-8 w-8'>
                   <AvatarFallback>JD</AvatarFallback>
                 </Avatar>
-                <span className='text-sm font-medium'>John Doe</span>
+                <span className='text-sm font-medium'>Master User</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-56'>

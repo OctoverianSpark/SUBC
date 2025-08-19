@@ -373,7 +373,7 @@ const initializeDemoData = () => {
         title: "Project Status Updated",
         description: "Downtown Office Complex progress updated to 45%",
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        user: "John Constructor",
+        user: "Master User",
         status: "success",
       },
       {
