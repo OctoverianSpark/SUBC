@@ -3,15 +3,29 @@ import MetricsCards from '@/components/dashboard/metrics-cards'
 import ProjectOverview from '@/components/dashboard/project-overview'
 import QuickActions from '@/components/dashboard/quick-actions'
 import RecentActivity from '@/components/dashboard/recent-activity'
-import { demoStorage } from '@/lib/demo-storage'
+import { getAuthUser, requireAuthOrRedirect } from '@/lib/cookies'
+import { prisma } from '@/lib/db'
 
 export default async function DashboardPage () {
-  const user = demoStorage.getUser() || {
-    id: 'demo-user',
-    email: 'demo@construction.com',
-    firstName: 'Master',
-    lastName: 'Constructor',
-    company: 'Demo Construction Co.'
+  await requireAuthOrRedirect()
+
+  const cookieUser = await getAuthUser()
+  let user = null
+  if (cookieUser) {
+    user = await prisma.user.findUnique({ where: { id: cookieUser.id } })
+  }
+  if (!user) {
+    // fallback: usuario anónimo (no debería ocurrir si el middleware funciona)
+    user = {
+      id: 0,
+      name: 'Guest',
+      email: '',
+      password: '',
+      role: 'USER',
+      active: false,
+      createdAt: '',
+      updatedAt: ''
+    }
   }
 
   return (
@@ -21,7 +35,7 @@ export default async function DashboardPage () {
       <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         <div className='mb-8'>
           <h1 className='text-3xl font-bold text-gray-900'>
-            Welcome back, {user.firstName} {user.lastName}
+            Welcome back, {user.name}
           </h1>
           <p className='text-gray-600 mt-2'>
             Here's what's happening with your construction projects today.
@@ -40,7 +54,6 @@ export default async function DashboardPage () {
           {/* Sidebar with Quick Actions and Recent Activity */}
           <div className='space-y-8'>
             <QuickActions />
-            <RecentActivity />
           </div>
         </div>
       </main>

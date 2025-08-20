@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,17 +14,34 @@ import {
   Trash2,
   X
 } from 'lucide-react'
-import { demoStorage, Estimate } from '@/lib/demo-storage'
+import { deleteEstimate, updateEstimate } from '@/app/estimates/actions'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { downloadEstimatePDF } from './pdf-utils'
 
-export default function EstimatesList () {
-  const [estimates, setEstimates] = useState<Estimate[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState<Partial<Estimate>>({})
+// El tipo Estimate debe corresponder al modelo Prisma
+export type Estimate = {
+  id: number
+  projectId: number
+  estimatorId?: number | null
+  amount: number
+  createdAt: string
+  status: string
+  // Puedes agregar más campos si el modelo lo requiere
+  // projectName, estimateNumber, client, category, validUntil, etc. si existen
+}
 
-  useEffect(() => {
-    setEstimates(demoStorage.getEstimates())
-  }, [])
+interface EstimatesListProps {
+  estimates: Estimate[]
+  projects?: { id: number; name: string }[]
+  users?: { id: number; name: string }[]
+}
 
+export default function EstimatesList ({
+  estimates,
+  projects = [],
+  users = []
+}: EstimatesListProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPROVED':
@@ -50,42 +66,32 @@ export default function EstimatesList () {
     }).format(amount)
   }
 
-  const handleDelete = (id: string) => {
-    demoStorage.deleteEstimate(id)
-    setEstimates(demoStorage.getEstimates())
+  const router = useRouter()
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editStatus, setEditStatus] = useState('')
+
+  const handleDelete = async (id: number) => {
+    await deleteEstimate(id)
+    router.refresh()
   }
 
   const handleEdit = (estimate: Estimate) => {
-    setEditingId(estimate.id)
-    setEditData({ ...estimate })
+    setEditId(estimate.id)
+    setEditAmount(String(estimate.amount))
+    setEditStatus(estimate.status)
   }
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setEditData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleSave = () => {
-    if (editingId) {
-      demoStorage.updateEstimate(editingId, {
-        ...editData,
-        totalAmount: Number(editData.totalAmount)
-      })
-      setEstimates(demoStorage.getEstimates())
-      setEditingId(null)
-      setEditData({})
-    }
-  }
-
-  const handleCancel = () => {
-    setEditingId(null)
-    setEditData({})
+  const handleUpdate = async (id: number) => {
+    await updateEstimate(id, { amount: Number(editAmount), status: editStatus })
+    setEditId(null)
+    router.refresh()
   }
 
   return (
     <div className='space-y-6'>
       {/* Summary Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
         <Card>
           <CardContent className='p-4'>
             <div className='flex items-center space-x-2'>
@@ -94,7 +100,7 @@ export default function EstimatesList () {
                 <p className='text-sm text-muted-foreground'>Total Value</p>
                 <p className='text-xl font-bold'>
                   {formatCurrency(
-                    estimates.reduce((acc, e) => acc + (e.totalAmount || 0), 0)
+                    estimates.reduce((acc, e) => acc + (e.amount || 0), 0)
                   )}
                 </p>
               </div>
@@ -124,21 +130,12 @@ export default function EstimatesList () {
                   {
                     estimates.filter(
                       e =>
-                        new Date(e.createdDate).getMonth() ===
+                        new Date(e.createdAt).getMonth() ===
                         new Date().getMonth()
                     ).length
                   }
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='p-4'>
-            <div className='flex items-center space-x-2'>
-              <Badge className='bg-primary text-primary-foreground'>
-                Win Rate: 75%
-              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -158,49 +155,19 @@ export default function EstimatesList () {
               >
                 <div className='flex items-start justify-between mb-3'>
                   <div>
-                    {editingId === estimate.id ? (
-                      <>
-                        <input
-                          className='border rounded px-2 py-1 mb-1 w-full font-semibold text-lg'
-                          name='projectName'
-                          value={editData.projectName || ''}
-                          onChange={handleEditChange}
-                        />
-                        <input
-                          className='border rounded px-2 py-1 mb-1 w-full text-sm'
-                          name='estimateNumber'
-                          value={editData.estimateNumber || ''}
-                          onChange={handleEditChange}
-                        />
-                        <div className='flex items-center space-x-4 mt-2 text-sm text-muted-foreground'>
-                          <input
-                            className='border rounded px-2 py-1'
-                            name='client'
-                            value={editData.client || ''}
-                            onChange={handleEditChange}
-                          />
-                          <input
-                            className='border rounded px-2 py-1'
-                            name='category'
-                            value={editData.category || ''}
-                            onChange={handleEditChange}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className='font-semibold text-lg text-foreground'>
-                          {estimate.projectName}
-                        </h3>
-                        <p className='text-sm text-muted-foreground'>
-                          {estimate.estimateNumber}
-                        </p>
-                        <div className='flex items-center space-x-4 mt-2 text-sm text-muted-foreground'>
-                          <span>Client: {estimate.client}</span>
-                          <span>Category: {estimate.category}</span>
-                        </div>
-                      </>
-                    )}
+                    <h3 className='font-semibold text-lg text-foreground'>
+                      {projects.find(p => p.id === estimate.projectId)?.name ||
+                        estimate.projectId}
+                    </h3>
+                    <div className='flex items-center space-x-4 mt-2 text-sm text-muted-foreground'>
+                      <span>ID: {estimate.id}</span>
+                      <span>
+                        Estimator:{' '}
+                        {users.find(u => u.id === estimate.estimatorId)?.name ||
+                          estimate.estimatorId ||
+                          'N/A'}
+                      </span>
+                    </div>
                   </div>
                   <div className='flex items-center space-x-2'>
                     <Badge className={getStatusColor(estimate.status)}>
@@ -208,58 +175,52 @@ export default function EstimatesList () {
                     </Badge>
                   </div>
                 </div>
-
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
                   <div>
                     <p className='text-sm text-muted-foreground'>
                       Total Amount
                     </p>
-                    {editingId === estimate.id ? (
-                      <input
-                        className='border rounded px-2 py-1 w-24'
-                        name='totalAmount'
-                        type='number'
-                        value={editData.totalAmount || ''}
-                        onChange={handleEditChange}
-                      />
-                    ) : (
-                      <p className='text-xl font-bold text-primary'>
-                        {formatCurrency(estimate.totalAmount)}
-                      </p>
-                    )}
+                    <p className='text-xl font-bold text-primary'>
+                      {formatCurrency(estimate.amount)}
+                    </p>
                   </div>
                   <div>
                     <p className='text-sm text-muted-foreground'>Created</p>
                     <p className='font-medium'>
-                      {new Date(estimate.createdDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className='text-sm text-muted-foreground'>Valid Until</p>
-                    <p className='font-medium'>
-                      {new Date(estimate.validUntil).toLocaleDateString()}
+                      {new Date(estimate.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-
                 <div className='flex items-center space-x-2'>
-                  <Button variant='outline' size='sm'>
-                    <Eye className='h-4 w-4 mr-2' />
-                    View
-                  </Button>
-                  {editingId === estimate.id ? (
+                  {editId === estimate.id ? (
                     <>
+                      <input
+                        type='number'
+                        value={editAmount}
+                        onChange={e => setEditAmount(e.target.value)}
+                        className='border rounded px-2 py-1 w-24 mr-2'
+                      />
+                      <select
+                        value={editStatus}
+                        onChange={e => setEditStatus(e.target.value)}
+                        className='border rounded px-2 py-1 w-32 mr-2'
+                      >
+                        <option value='IN_PROGRESS'>In Progress</option>
+                        <option value='SUBMITTED'>Submitted</option>
+                        <option value='AWARDED'>Awarded</option>
+                        <option value='REJECTED'>Rejected</option>
+                        <option value='DRAFT'>Draft</option>
+                      </select>
                       <Button
                         size='sm'
-                        className='bg-emerald-600 hover:bg-emerald-700'
-                        onClick={handleSave}
+                        onClick={() => handleUpdate(estimate.id)}
                       >
                         <Save className='h-4 w-4 mr-1' /> Save
                       </Button>
                       <Button
                         size='sm'
-                        variant='outline'
-                        onClick={handleCancel}
+                        variant='ghost'
+                        onClick={() => setEditId(null)}
                       >
                         <X className='h-4 w-4 mr-1' /> Cancel
                       </Button>
@@ -271,23 +232,38 @@ export default function EstimatesList () {
                         size='sm'
                         onClick={() => handleEdit(estimate)}
                       >
-                        <Edit className='h-4 w-4 mr-2' />
-                        Edit
+                        <Edit className='h-4 w-4 mr-2' /> Edit
                       </Button>
                       <Button
-                        variant='destructive'
+                        variant='outline'
                         size='sm'
                         onClick={() => handleDelete(estimate.id)}
                       >
-                        <Trash2 className='h-4 w-4 mr-2' />
-                        Delete
+                        <Trash2 className='h-4 w-4 mr-2' /> Delete
+                      </Button>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => {
+                          const projectName =
+                            projects.find(p => p.id === estimate.projectId)
+                              ?.name || estimate.projectId
+                          const estimatorName =
+                            users.find(u => u.id === estimate.estimatorId)
+                              ?.name ||
+                            estimate.estimatorId ||
+                            'N/A'
+                          downloadEstimatePDF(
+                            estimate,
+                            projectName,
+                            estimatorName
+                          )
+                        }}
+                      >
+                        <Download className='h-4 w-4 mr-2' /> Download
                       </Button>
                     </>
                   )}
-                  <Button variant='outline' size='sm'>
-                    <Download className='h-4 w-4 mr-2' />
-                    Download
-                  </Button>
                 </div>
               </div>
             ))}

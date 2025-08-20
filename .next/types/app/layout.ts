@@ -1,4 +1,4 @@
-// File: C:\Users\jean.pr\Downloads\construction-management\app\layout.tsx
+// File: /home/octospark/projects/subc/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

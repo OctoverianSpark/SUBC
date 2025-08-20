@@ -1,159 +1,71 @@
+import { requireAuthOrRedirect } from '@/lib/cookies'
+import { payrollDb } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Play, Users, DollarSign, Clock, FileText } from 'lucide-react'
 import Link from 'next/link'
 
-export default function PayrollPage () {
-  // Mock data for now - replace with actual database query
-  const payrollRuns = [
-    {
-      id: 1,
-      period: 'January 2024',
-      status: 'completed',
-      total_amount: 125000.0,
-      employee_count: 25,
-      run_date: '2024-01-31',
-      pay_date: '2024-02-02'
-    },
-    {
-      id: 2,
-      period: 'February 2024',
-      status: 'pending',
-      total_amount: 0,
-      employee_count: 27,
-      run_date: null,
-      pay_date: '2024-03-01'
-    }
-  ]
+export default async function PayrollPage () {
+  await requireAuthOrRedirect()
+  const payrolls = await payrollDb.findAll()
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
-      <div className='flex justify-between items-center'>
-        <div>
-          <h1 className='text-3xl font-bold text-slate-900'>
-            Payroll Management
-          </h1>
-          <p className='text-slate-600 mt-1'>
-            Process payroll and manage employee payments
-          </p>
+    <div className='min-h-screen bg-gray-50'>
+      <main className='max-w-4xl mx-auto px-4 py-8'>
+        <div className='flex justify-between items-center mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>Payroll</h1>
+          <Link href='/payroll/new'>
+            <Button className='bg-emerald-600 hover:bg-emerald-700'>
+              New Payroll
+            </Button>
+          </Link>
         </div>
-        <Link href='/payroll/run'>
-          <Button className='bg-emerald-600 hover:bg-emerald-700'>
-            <Play className='h-4 w-4 mr-2' />
-            Run Payroll
-          </Button>
-        </Link>
-      </div>
-
-      <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-6'>
         <Card>
-          <CardContent className='p-6'>
-            <div className='flex items-center'>
-              <Users className='h-8 w-8 text-blue-600' />
-              <div className='ml-4'>
-                <p className='text-sm font-medium text-slate-600'>
-                  Active Employees
-                </p>
-                <p className='text-2xl font-bold'>27</p>
-              </div>
+          <CardHeader>
+            <CardTitle>Payroll History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='overflow-x-auto'>
+              <table className='min-w-full text-sm'>
+                <thead>
+                  <tr className='text-left text-gray-600'>
+                    <th className='p-2'>Employee</th>
+                    <th className='p-2'>Period</th>
+                    <th className='p-2'>Hours</th>
+                    <th className='p-2'>Gross</th>
+                    <th className='p-2'>Deductions</th>
+                    <th className='p-2'>Net</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payrolls.map(payroll => (
+                    <tr key={payroll.id} className='border-b'>
+                      <td className='p-2'>
+                        {payroll.employee
+                          ? `${payroll.employee.firstName} ${payroll.employee.lastName}`
+                          : '—'}
+                      </td>
+                      <td className='p-2'>
+                        {new Date(payroll.periodStart).toLocaleDateString()} -{' '}
+                        {new Date(payroll.periodEnd).toLocaleDateString()}
+                      </td>
+                      <td className='p-2'>{payroll.totalHours}</td>
+                      <td className='p-2'>
+                        ${(payroll.grossPay ?? 0).toFixed(2)}
+                      </td>
+                      <td className='p-2'>
+                        ${(payroll.deductions ?? 0).toFixed(2)}
+                      </td>
+                      <td className='p-2 font-bold'>
+                        ${(payroll.netPay ?? 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className='p-6'>
-            <div className='flex items-center'>
-              <DollarSign className='h-8 w-8 text-green-600' />
-              <div className='ml-4'>
-                <p className='text-sm font-medium text-slate-600'>
-                  Monthly Payroll
-                </p>
-                <p className='text-2xl font-bold'>$125K</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='p-6'>
-            <div className='flex items-center'>
-              <Clock className='h-8 w-8 text-orange-600' />
-              <div className='ml-4'>
-                <p className='text-sm font-medium text-slate-600'>
-                  Hours This Week
-                </p>
-                <p className='text-2xl font-bold'>1,080</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='p-6'>
-            <div className='flex items-center'>
-              <FileText className='h-8 w-8 text-purple-600' />
-              <div className='ml-4'>
-                <p className='text-sm font-medium text-slate-600'>
-                  Certified Reports
-                </p>
-                <p className='text-2xl font-bold'>12</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className='grid gap-6'>
-        {payrollRuns.map(run => (
-          <Card key={run.id} className='hover:shadow-lg transition-shadow'>
-            <CardHeader>
-              <div className='flex justify-between items-start'>
-                <div>
-                  <CardTitle className='text-xl'>
-                    Payroll - {run.period}
-                  </CardTitle>
-                  <p className='text-slate-600 mt-1'>
-                    {run.employee_count} employees
-                  </p>
-                </div>
-                <Badge
-                  variant={run.status === 'completed' ? 'default' : 'secondary'}
-                >
-                  {run.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                <div>
-                  <div className='text-sm text-slate-600'>Total Amount</div>
-                  <div className='font-semibold text-lg'>
-                    {run.total_amount > 0
-                      ? `$${run.total_amount.toLocaleString()}`
-                      : 'Pending'}
-                  </div>
-                </div>
-                <div>
-                  <div className='text-sm text-slate-600'>Employees</div>
-                  <div className='font-semibold'>{run.employee_count}</div>
-                </div>
-                <div>
-                  <div className='text-sm text-slate-600'>Run Date</div>
-                  <div className='font-semibold'>
-                    {run.run_date
-                      ? new Date(run.run_date).toLocaleDateString()
-                      : 'Not run'}
-                  </div>
-                </div>
-                <div>
-                  <div className='text-sm text-slate-600'>Pay Date</div>
-                  <div className='font-semibold'>
-                    {new Date(run.pay_date).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      </main>
     </div>
   )
 }

@@ -1,69 +1,98 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { toast } from '@/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Plus,
-  MapPin,
-  Calendar,
-  Users,
-  DollarSign,
-  Edit,
-  Trash2,
-  Save,
-  X
-} from 'lucide-react'
+import { Plus, Calendar, Edit, Trash2, Save, X } from 'lucide-react'
 import Link from 'next/link'
-import { demoStorage, Project } from '@/lib/demo-storage'
+import { projectDb } from '@/lib/db'
+import { deleteProject, updateProject } from './actions'
+import { revalidatePath } from 'next/cache'
+import { getAuthUser } from '@/lib/cookies'
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from '@/components/ui/dialog'
 
-export default function ProjectsPage () {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState<Partial<Project>>({})
+// Nuevo tipo Project para el frontend (puedes importar de @prisma/client si usas types compartidos)
+type Project = {
+  id: number
+  jobNumber: string
+  name: string
+  managerId?: number
+  startDate?: string
+  endDate?: string
+  status: string
+}
 
-  useEffect(() => {
-    setProjects(demoStorage.getProjects())
-  }, [])
+export default async function ProjectsPage () {
+  const user = await getAuthUser()
 
-  const handleDelete = (id: string) => {
-    demoStorage.deleteProject(id)
-    setProjects(demoStorage.getProjects())
+  let projects: Project[] = []
+  if (user?.role === 'ADMIN' || user?.role === 'OWNER') {
+    projects = (await projectDb.findAll()).map(p => ({
+      ...p,
+      managerId: p.managerId ?? undefined,
+      startDate: p.startDate
+        ? typeof p.startDate === 'string'
+          ? p.startDate
+          : p.startDate.toISOString()
+        : undefined,
+      endDate: p.endDate
+        ? typeof p.endDate === 'string'
+          ? p.endDate
+          : p.endDate.toISOString()
+        : undefined,
+      status: String(p.status)
+    }))
+  } else if (user?.role === 'PROJECT_MANAGER') {
+    projects = (await projectDb.findAll())
+      .filter(p => p.managerId === user.id)
+      .map(p => ({
+        ...p,
+        managerId: p.managerId ?? undefined,
+        startDate: p.startDate
+          ? typeof p.startDate === 'string'
+            ? p.startDate
+            : p.startDate.toISOString()
+          : undefined,
+        endDate: p.endDate
+          ? typeof p.endDate === 'string'
+            ? p.endDate
+            : p.endDate.toISOString()
+          : undefined,
+        status: String(p.status)
+      }))
+  } else {
+    projects = []
   }
 
-  const handleEdit = (project: Project) => {
-    setEditingId(project.id)
-    setEditData({ ...project })
+  // Server actions para eliminar y actualizar
+  async function handleDelete (formData: FormData) {
+    'use server'
+    const id = Number(formData.get('id'))
+    await deleteProject(id)
+    revalidatePath('/projects')
   }
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setEditData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleSave = () => {
-    if (editingId) {
-      demoStorage.updateProject(editingId, {
-        ...editData,
-        budget: Number(editData.budget),
-        team_size: Number(editData.team_size),
-        completion: Number(editData.completion)
-      })
-      setProjects(demoStorage.getProjects())
-      setEditingId(null)
-      setEditData({})
-      toast({
-        title: 'Data Saved',
-        description: 'Project changes have been saved.'
-      })
-    }
-  }
-
-  const handleCancel = () => {
-    setEditingId(null)
-    setEditData({})
+  async function handleUpdate (formData: FormData) {
+    'use server'
+    const id = Number(formData.get('id'))
+    const name = formData.get('name') as string
+    const jobNumber = formData.get('jobNumber') as string
+    const startDate = formData.get('startDate') as string
+    const endDate = formData.get('endDate') as string
+    const status = formData.get('status') as string
+    await updateProject(id, {
+      name,
+      jobNumber,
+      startDate: startDate ? new Date(startDate).toISOString() : undefined,
+      endDate: endDate ? new Date(endDate).toISOString() : undefined,
+      status
+    })
+    revalidatePath('/projects')
   }
 
   return (
@@ -82,176 +111,140 @@ export default function ProjectsPage () {
           </Button>
         </Link>
       </div>
-
       <div className='grid gap-6'>
         {projects.map(project => (
           <Card key={project.id} className='hover:shadow-lg transition-shadow'>
             <CardHeader>
               <div className='flex justify-between items-start'>
                 <div>
-                  {editingId === project.id ? (
-                    <>
-                      <CardTitle className='text-xl'>
-                        <input
-                          className='border rounded px-2 py-1 w-full'
-                          name='name'
-                          value={editData.name || ''}
-                          onChange={handleEditChange}
-                        />
-                      </CardTitle>
-                      <div className='flex items-center text-slate-600 mt-2'>
-                        <MapPin className='h-4 w-4 mr-1' />
-                        <input
-                          className='border rounded px-2 py-1'
-                          name='location'
-                          value={editData.location || ''}
-                          onChange={handleEditChange}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <CardTitle className='text-xl'>{project.name}</CardTitle>
-                      <div className='flex items-center text-slate-600 mt-2'>
-                        <MapPin className='h-4 w-4 mr-1' />
-                        {project.location}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <Badge
-                  variant={
-                    project.status === 'active' ? 'default' : 'secondary'
-                  }
-                >
-                  {project.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 items-center'>
-                <div className='flex items-center'>
-                  <DollarSign className='h-4 w-4 mr-2 text-green-600' />
-                  <div>
-                    <div className='text-sm text-slate-600'>Budget</div>
-                    {editingId === project.id ? (
-                      <input
-                        className='border rounded px-2 py-1 w-20'
-                        name='budget'
-                        type='number'
-                        value={editData.budget || ''}
-                        onChange={handleEditChange}
-                      />
-                    ) : (
-                      <div className='font-semibold'>
-                        ${project.budget.toLocaleString()}
-                      </div>
-                    )}
+                  <CardTitle className='text-xl'>{project.name}</CardTitle>
+                  <div className='flex items-center text-slate-600 mt-2'>
+                    <span className='font-semibold mr-2'>Job #</span>
+                    {project.jobNumber}
+                  </div>
+                  <div className='flex items-center text-slate-600 mt-2'>
+                    <Calendar className='h-4 w-4 mr-1' />
+                    {project.startDate
+                      ? new Date(project.startDate).toLocaleDateString()
+                      : 'N/A'}
+                    <span className='mx-2'>to</span>
+                    {project.endDate
+                      ? new Date(project.endDate).toLocaleDateString()
+                      : 'N/A'}
+                  </div>
+                  <div className='flex items-center text-slate-600 mt-2'>
+                    <span className='font-semibold mr-2'>Status:</span>
+                    <Badge>{project.status}</Badge>
                   </div>
                 </div>
-                <div className='flex items-center'>
-                  <Users className='h-4 w-4 mr-2 text-blue-600' />
-                  <div>
-                    <div className='text-sm text-slate-600'>Team Size</div>
-                    {editingId === project.id ? (
-                      <input
-                        className='border rounded px-2 py-1 w-12'
-                        name='team_size'
-                        type='number'
-                        value={editData.team_size || ''}
-                        onChange={handleEditChange}
-                      />
-                    ) : (
-                      <div className='font-semibold'>{project.team_size}</div>
-                    )}
-                  </div>
-                </div>
-                <div className='flex items-center'>
-                  <Calendar className='h-4 w-4 mr-2 text-purple-600' />
-                  <div>
-                    <div className='text-sm text-slate-600'>Start Date</div>
-                    {editingId === project.id ? (
-                      <input
-                        className='border rounded px-2 py-1'
-                        name='start_date'
-                        type='date'
-                        value={editData.start_date || ''}
-                        onChange={handleEditChange}
-                      />
-                    ) : (
-                      <div className='font-semibold'>
-                        {new Date(project.start_date).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className='text-sm text-slate-600'>Progress</div>
-                  <div className='flex items-center'>
-                    <div className='flex-1 bg-slate-200 rounded-full h-2 mr-2'>
-                      <div
-                        className='bg-emerald-600 h-2 rounded-full'
-                        style={{
-                          width: `${
-                            editingId === project.id
-                              ? editData.completion || 0
-                              : project.completion
-                          }%`
-                        }}
-                      ></div>
-                    </div>
-                    {editingId === project.id ? (
-                      <input
-                        className='border rounded px-2 py-1 w-12'
-                        name='completion'
-                        type='number'
-                        min={0}
-                        max={100}
-                        value={editData.completion || ''}
-                        onChange={handleEditChange}
-                      />
-                    ) : (
-                      <span className='text-sm font-semibold'>
-                        {project.completion}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className='flex gap-2 mt-4'>
-                {editingId === project.id ? (
-                  <>
-                    <Button
-                      size='sm'
-                      className='bg-emerald-600 hover:bg-emerald-700'
-                      onClick={handleSave}
-                    >
-                      <Save className='h-4 w-4 mr-1' /> Save
-                    </Button>
-                    <Button size='sm' variant='outline' onClick={handleCancel}>
-                      <X className='h-4 w-4 mr-1' /> Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      onClick={() => handleEdit(project)}
-                    >
-                      <Edit className='h-4 w-4 mr-1' /> Edit
-                    </Button>
-                    <Button
-                      size='sm'
-                      variant='destructive'
-                      onClick={() => handleDelete(project.id)}
-                    >
+                <div className='flex gap-2'>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size='sm' variant='outline'>
+                        <Edit className='h-4 w-4 mr-1' /> Edit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className='max-w-md'>
+                      <DialogHeader>
+                        <DialogTitle>Edit Project</DialogTitle>
+                      </DialogHeader>
+                      <form action={handleUpdate} className='space-y-3'>
+                        <input type='hidden' name='id' value={project.id} />
+                        <div>
+                          <label className='block text-sm font-medium'>
+                            Name
+                          </label>
+                          <input
+                            name='name'
+                            defaultValue={project.name}
+                            className='border rounded px-2 py-1 w-full'
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className='block text-sm font-medium'>
+                            Job Number
+                          </label>
+                          <input
+                            name='jobNumber'
+                            defaultValue={project.jobNumber}
+                            className='border rounded px-2 py-1 w-full'
+                            required
+                          />
+                        </div>
+                        <div className='flex gap-2'>
+                          <div className='flex-1'>
+                            <label className='block text-sm font-medium'>
+                              Start Date
+                            </label>
+                            <input
+                              name='startDate'
+                              type='date'
+                              defaultValue={
+                                project.startDate
+                                  ? project.startDate.slice(0, 10)
+                                  : ''
+                              }
+                              className='border rounded px-2 py-1 w-full'
+                            />
+                          </div>
+                          <div className='flex-1'>
+                            <label className='block text-sm font-medium'>
+                              End Date
+                            </label>
+                            <input
+                              name='endDate'
+                              type='date'
+                              defaultValue={
+                                project.endDate
+                                  ? project.endDate.slice(0, 10)
+                                  : ''
+                              }
+                              className='border rounded px-2 py-1 w-full'
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className='block text-sm font-medium'>
+                            Status
+                          </label>
+                          <select
+                            name='status'
+                            defaultValue={project.status}
+                            className='border rounded px-2 py-1 w-full'
+                          >
+                            <option value='PLANNED'>Planned</option>
+                            <option value='IN_PROGRESS'>In Progress</option>
+                            <option value='COMPLETED'>Completed</option>
+                            <option value='ON_HOLD'>On Hold</option>
+                          </select>
+                        </div>
+                        <div className='flex justify-end gap-2'>
+                          <DialogClose asChild>
+                            <Button type='button' variant='outline'>
+                              Cancel
+                            </Button>
+                          </DialogClose>
+                          <Button
+                            type='submit'
+                            className='bg-emerald-600 hover:bg-emerald-700'
+                          >
+                            <Save className='h-4 w-4 mr-1' /> Save
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  <form action={handleDelete} className='inline'>
+                    <input type='hidden' name='id' value={project.id} />
+                    <Button size='sm' variant='destructive' type='submit'>
                       <Trash2 className='h-4 w-4 mr-1' /> Delete
                     </Button>
-                  </>
-                )}
+                  </form>
+                </div>
               </div>
-            </CardContent>
+            </CardHeader>
+            <CardContent />
           </Card>
         ))}
       </div>

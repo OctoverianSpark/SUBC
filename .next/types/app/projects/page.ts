@@ -1,4 +1,4 @@
-// File: C:\Users\jean.pr\Downloads\construction-management\app\projects\page.tsx
+// File: /home/octospark/projects/subc/app/projects/page.tsx
 import * as entry from '../../../../app/projects/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -1,11 +1,12 @@
 import DashboardHeader from '@/components/dashboard/dashboard-header'
 import EstimateForm from '@/components/estimates/estimate-form'
+import { getProjectsAndUsers } from './data'
 
-export default function NewEstimatePage () {
-  // No user logic, just static demo content
+export default async function NewEstimatePage () {
+  const { projects, users } = await getProjectsAndUsers()
   return (
     <div className='min-h-screen bg-background'>
-      <DashboardHeader user={null} />
+      <DashboardHeader />
 
       <main className='container mx-auto px-4 py-8'>
         <div className='mb-8'>
@@ -17,7 +18,7 @@ export default function NewEstimatePage () {
           </p>
         </div>
 
-        <EstimateForm />
+        <EstimateForm projects={projects} users={users} />
       </main>
     </div>
   )

@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, DollarSign, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { requireAuthOrRedirect } from '@/lib/cookies'
 
-export default function BillingPage () {
+export default async function BillingPage () {
+  await requireAuthOrRedirect()
+
   // Mock data for now - replace with actual database query
   const invoices = [
     {

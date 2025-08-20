@@ -1,34 +1,43 @@
-"use client"
+'use client'
 
-import { useActionState } from "react"
-import { useFormStatus } from "react-dom"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
-import Link from "next/link"
-import { signIn } from "@/lib/actions"
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { signIn } from '@/app/auth/login/actions'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-function SubmitButton() {
+function SubmitButton () {
   const { pending } = useFormStatus()
 
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button type='submit' disabled={pending} className='w-full'>
       {pending ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
           Signing in...
         </>
       ) : (
-        "Sign In"
+        'Sign In'
       )}
     </Button>
   )
 }
 
-export default function LoginForm() {
+export default function LoginForm () {
   const [state, formAction] = useActionState(signIn, null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (state?.success) {
+      router.replace('/dashboard')
+    }
+  }, [state, router])
 
   return (
     <Card>
@@ -36,26 +45,34 @@ export default function LoginForm() {
         <CardTitle>Welcome Back</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
+        <form action={formAction} className='space-y-4'>
           {state?.error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{state.error}</div>
+            <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded'>
+              {state.error}
+            </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="you@company.com" required />
+          <div className='space-y-2'>
+            <Label htmlFor='email'>Email</Label>
+            <Input
+              id='email'
+              name='email'
+              type='email'
+              placeholder='you@company.com'
+              required
+            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
+          <div className='space-y-2'>
+            <Label htmlFor='password'>Password</Label>
+            <Input id='password' name='password' type='password' required />
           </div>
 
           <SubmitButton />
 
-          <div className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-blue-600 hover:underline">
+          <div className='text-center text-sm text-gray-600'>
+            Don't have an account?{' '}
+            <Link href='/auth/signup' className='text-blue-600 hover:underline'>
               Sign up
             </Link>
           </div>

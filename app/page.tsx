@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation"
+import { redirect } from 'next/navigation'
 
-export default async function Home() {
-  // Demo mode - redirect directly to dashboard
-  redirect("/dashboard")
+export default async function Home () {
+  redirect('/dashboard')
 }
