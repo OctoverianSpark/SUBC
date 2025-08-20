@@ -1,30 +1,25 @@
-import DashboardHeader from "@/components/dashboard/dashboard-header"
-import ContractsList from "@/components/contracts/contracts-list"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import DashboardHeader from '@/components/dashboard/dashboard-header'
+import ContractsList from '@/components/contracts/contracts-list'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+import Link from 'next/link'
 
-export default async function ContractsPage() {
-  // Demo mode - no authentication required
-  const demoUser = {
-    id: "demo-user",
-    email: "demo@construction.com",
-    user_metadata: { first_name: "John", last_name: "Constructor" },
-  }
-
+export default async function ContractsPage () {
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader user={demoUser} />
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+    <div className='min-h-screen bg-background'>
+      <main className='container mx-auto px-4 py-8'>
+        <div className='flex items-center justify-between mb-8'>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Contract Management</h1>
-            <p className="text-muted-foreground mt-2">Review, approve, and manage project contracts</p>
+            <h1 className='text-3xl font-bold text-foreground'>
+              Contract Management
+            </h1>
+            <p className='text-muted-foreground mt-2'>
+              Review, approve, and manage project contracts
+            </p>
           </div>
-          <Link href="/contracts/new">
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
+          <Link href='/contracts/new'>
+            <Button className='flex items-center space-x-2'>
+              <Plus className='h-4 w-4' />
               <span>New Contract</span>
             </Button>
           </Link>
