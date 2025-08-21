@@ -1,6 +1,14 @@
 'use server'
-import { bondingDb, insuranceDb, licenseDb, documentDb, employeeDb } from '@/lib/db'
+import {
+  bondingDb,
+  insuranceDb,
+  licenseDb,
+  documentDb,
+  employeeDb,
+  materialOrderDb
+} from '@/lib/db'
 import { revalidatePath } from 'next/cache'
+import { OrderStatus } from '@prisma/client'
 // MOCK AUTH ACTIONS (no real authentication)
 
 export async function signUp(prevState: any, formData: FormData) {
@@ -146,6 +154,37 @@ export async function getDocumentsByProject(projectId: number) {
     return documents.filter(d => d.projectId === projectId)
   } catch (error) {
     console.error('Error fetching documents:', error)
+    return []
+  }
+}
+
+// Material Order Actions
+export async function createMaterialOrder(data: {
+  projectId: number
+  description: string
+  status?: OrderStatus
+  submittedAt?: Date
+  approvedAt?: Date
+  orderedAt?: Date
+  officeETA?: Date
+  siteETA?: Date
+}) {
+  try {
+    const order = await materialOrderDb.create(data)
+    revalidatePath(`/projects/${data.projectId}`)
+    return { success: true, data: order }
+  } catch (error) {
+    console.error('Error creating material order:', error)
+    return { success: false, error: 'Failed to create material order' }
+  }
+}
+
+export async function getMaterialOrdersByProject(projectId: number) {
+  try {
+    const orders = await materialOrderDb.findAll()
+    return orders.filter(o => o.projectId === projectId)
+  } catch (error) {
+    console.error('Error fetching material orders:', error)
     return []
   }
 }

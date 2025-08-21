@@ -5,7 +5,8 @@ import {
   createBonding,
   createInsurance,
   createLicense,
-  createDocument
+  createDocument,
+  createMaterialOrder
 } from '@/lib/actions'
 
 // Modal Component
@@ -461,6 +462,196 @@ function LicenseForm ({ projectId, onSubmit, onCancel }) {
     </div>
   )
 }
+
+// Material Order Form Component
+function MaterialOrderForm ({ projectId, onSubmit, onCancel }) {
+  const [formData, setFormData] = useState({
+    description: '',
+    status: 'SUBMITTED',
+    submittedAt: '',
+    approvedAt: '',
+    orderedAt: '',
+    officeETA: '',
+    siteETA: ''
+  })
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!formData.description) {
+      alert('Please fill in the description.')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const result = await createMaterialOrder({
+        projectId,
+        description: formData.description,
+        status: formData.status,
+        submittedAt: formData.submittedAt
+          ? new Date(formData.submittedAt)
+          : undefined,
+        approvedAt: formData.approvedAt
+          ? new Date(formData.approvedAt)
+          : undefined,
+        orderedAt: formData.orderedAt
+          ? new Date(formData.orderedAt)
+          : undefined,
+        officeETA: formData.officeETA
+          ? new Date(formData.officeETA)
+          : undefined,
+        siteETA: formData.siteETA
+          ? new Date(formData.siteETA)
+          : undefined
+      })
+
+      if (result.success) {
+        onSubmit(result.data)
+      } else {
+        alert(
+          result.error || 'Error creating material order. Please try again.'
+        )
+      }
+    } catch (error) {
+      console.error('Error creating material order:', error)
+      alert('Error creating material order. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleChange = e => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  return (
+    <div className='space-y-4'>
+      <div>
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
+          Description
+        </label>
+        <input
+          type='text'
+          name='description'
+          value={formData.description}
+          onChange={handleChange}
+          disabled={isLoading}
+          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+        />
+      </div>
+
+      <div>
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
+          Status
+        </label>
+        <select
+          name='status'
+          value={formData.status}
+          onChange={handleChange}
+          disabled={isLoading}
+          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+        >
+          <option value='SUBMITTED'>Submitted</option>
+          <option value='APPROVED'>Approved</option>
+          <option value='ORDERED'>Ordered</option>
+          <option value='SCHEDULED'>Scheduled</option>
+          <option value='DELIVERED_TO_OFFICE'>Delivered to Office</option>
+          <option value='DELIVERED_TO_SITE'>Delivered to Site</option>
+        </select>
+      </div>
+
+      <div className='grid grid-cols-2 gap-4'>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Submitted At
+          </label>
+          <input
+            type='date'
+            name='submittedAt'
+            value={formData.submittedAt}
+            onChange={handleChange}
+            disabled={isLoading}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+          />
+        </div>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Approved At
+          </label>
+          <input
+            type='date'
+            name='approvedAt'
+            value={formData.approvedAt}
+            onChange={handleChange}
+            disabled={isLoading}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+          />
+        </div>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Ordered At
+          </label>
+          <input
+            type='date'
+            name='orderedAt'
+            value={formData.orderedAt}
+            onChange={handleChange}
+            disabled={isLoading}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+          />
+        </div>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Office ETA
+          </label>
+          <input
+            type='date'
+            name='officeETA'
+            value={formData.officeETA}
+            onChange={handleChange}
+            disabled={isLoading}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+          />
+        </div>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Site ETA
+          </label>
+          <input
+            type='date'
+            name='siteETA'
+            value={formData.siteETA}
+            onChange={handleChange}
+            disabled={isLoading}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+          />
+        </div>
+      </div>
+
+      <div className='flex gap-2 pt-4'>
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50'
+        >
+          {isLoading ? 'Adding...' : 'Add Material Order'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={isLoading}
+          className='bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50'
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Document Preview Modal Component
 function DocumentPreviewModal ({ doc, onClose }) {
   if (!doc) return null
@@ -628,7 +819,8 @@ export default function ProjectDetailClient ({
   bondings,
   insurances,
   licenses,
-  documents
+  documents,
+  materialOrders
 }) {
   const [projectBondings, setProjectBondings] = useState(
     bondings.filter(b => b.projectId === project.id)
@@ -641,6 +833,9 @@ export default function ProjectDetailClient ({
   )
   const [projectDocuments, setProjectDocuments] = useState(
     documents.filter(d => d.projectId === project.id)
+  )
+  const [projectMaterialOrders, setProjectMaterialOrders] = useState(
+    materialOrders.filter(o => o.projectId === project.id)
   )
 
   const [activeModal, setActiveModal] = useState(null)
@@ -663,6 +858,11 @@ export default function ProjectDetailClient ({
 
   const handleDocumentSubmit = documentData => {
     setProjectDocuments(prev => [...prev, documentData])
+    setActiveModal(null)
+  }
+
+  const handleMaterialOrderSubmit = orderData => {
+    setProjectMaterialOrders(prev => [...prev, orderData])
     setActiveModal(null)
   }
 
@@ -794,6 +994,44 @@ export default function ProjectDetailClient ({
             )}
           </section>
 
+          {/* Material Orders Section */}
+          <section className='bg-white p-6 rounded-lg shadow'>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-xl font-semibold'>Material Orders</h2>
+              <button
+                onClick={() => setActiveModal('materialOrder')}
+                className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors'
+              >
+                Add Material Order
+              </button>
+            </div>
+            {projectMaterialOrders.length > 0 ? (
+              <div className='space-y-3'>
+                {projectMaterialOrders.map(o => (
+                  <div
+                    key={o.id}
+                    className='border-l-4 border-red-400 pl-4 py-3 bg-red-50 rounded-r-md'
+                  >
+                    <div className='font-medium text-gray-900'>
+                      {o.description}
+                    </div>
+                    <div className='text-sm text-gray-700'>
+                      Status: {o.status}
+                    </div>
+                    <div className='text-sm text-gray-500'>
+                      {o.submittedAt && (
+                        <span>Submitted: {formatDate(o.submittedAt)} </span>
+                      )}
+                      {o.siteETA && <span> | Site ETA: {formatDate(o.siteETA)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className='text-gray-500'>No material orders added yet.</p>
+            )}
+          </section>
+
           {/* Documents Section */}
           <section className='bg-white p-6 rounded-lg shadow'>
             <div className='flex justify-between items-center mb-4'>
@@ -866,6 +1104,18 @@ export default function ProjectDetailClient ({
           <LicenseForm
             projectId={project.id}
             onSubmit={handleLicenseSubmit}
+            onCancel={handleModalClose}
+          />
+        </Modal>
+
+        <Modal
+          isOpen={activeModal === 'materialOrder'}
+          onClose={handleModalClose}
+          title='Add New Material Order'
+        >
+          <MaterialOrderForm
+            projectId={project.id}
+            onSubmit={handleMaterialOrderSubmit}
             onCancel={handleModalClose}
           />
         </Modal>
