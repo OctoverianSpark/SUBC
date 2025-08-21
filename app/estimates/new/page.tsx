@@ -4,6 +4,8 @@ import { getProjectsAndUsers } from './data'
 
 export default async function NewEstimatePage () {
   const { projects, users } = await getProjectsAndUsers()
+  console.log(users)
+
   return (
     <div className='min-h-screen bg-background'>
       <DashboardHeader />

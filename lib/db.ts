@@ -4,7 +4,7 @@ export const prisma = new PrismaClient()
 
 // ======================= USERS =======================
 export const userDb = {
-  findAll: () => prisma.user.findMany(),
+  findAll: (config={}) => prisma.user.findMany(config),
   findById: (id: number) => prisma.user.findUnique({ where: { id } }),
   findByEmail: (email: string) => prisma.user.findUnique({ where: { email } }),
   create: (data: { name?: string; email: string; password: string; role?: Role }) =>

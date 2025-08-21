@@ -3,7 +3,7 @@ import { projectDb, userDb } from '@/lib/db'
 export async function getProjectsAndUsers() {
   const [projects, users] = await Promise.all([
     projectDb.findAll(),
-    userDb.findAll()
+    userDb.findAll({where: { role:'ESTIMATOR'}})
   ])
   return {
     projects: projects.map((p: any) => ({ id: p.id, name: p.name })),

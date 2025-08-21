@@ -41,9 +41,18 @@ enum ProjectRole {
   MANAGER
 }
 
+enum ProjectStatusEnum {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
 // ==== USERS ====
 model User {
   id        Int      @id @default(autoincrement())
+  name      String?
   email     String   @unique
   password  String
   role      Role
@@ -56,10 +65,10 @@ model User {
   // Relación: Deliveries donde este usuario es el driver
   driverDeliveries Delivery[] @relation("Driver")
 
-  // Relación con empleados
+  // Relación con empleados (cascade delete: cuando se borra el usuario, el empleado queda sin usuario pero no se borra)
   Employee Employee[]
 
-  // Relación con Deliveries creados
+  // Relación con Deliveries creados (cascade delete)
   Delivery          Delivery[]
   Estimate          Estimate[]
   Task              Task[]
@@ -74,9 +83,9 @@ model Employee {
   email            String?                @unique
   phone            String?
   classificationId Int
-  classification   EmployeeClassification @relation(fields: [classificationId], references: [id])
+  classification   EmployeeClassification @relation(fields: [classificationId], references: [id], onDelete: Restrict)
   levelId          Int
-  level            EmployeeLevelModel     @relation(fields: [levelId], references: [id])
+  level            EmployeeLevelModel     @relation(fields: [levelId], references: [id], onDelete: Restrict)
   hireDate         DateTime?
   active           Boolean                @default(true)
 
@@ -87,21 +96,21 @@ model Employee {
   zip             String?
   terminationDate DateTime?
 
-  // Relación con entregas
+  // Relación con entregas (cascade delete)
   deliveries Delivery[]
 
-  // Relación con usuario
-  user   User? @relation(fields: [userId], references: [id])
+  // Relación con usuario (set null when user is deleted)
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId Int?
 
-  // Relación con proyectos (asignaciones)
+  // Relación con proyectos (asignaciones) - cascade delete
   projectAssignments EmployeeProjectAssignment[]
 
-  // Timesheets
+  // Timesheets - cascade delete
   dailyTimeEntries DailyTimeEntry[]
   weeklyTimecards  WeeklyTimecard[]
 
-  // Historial de clasificación
+  // Historial de clasificación - cascade delete
   classHistory EmployeeClassHistory[]
   Payroll      Payroll[]
 }
@@ -121,22 +130,22 @@ model EmployeeLevelModel {
 }
 
 // ==== PROJECTS & CONTRACTS ====
-// --- Agrega estas relaciones en Project ---
 model Project {
-  id        Int       @id @default(autoincrement())
-  jobNumber String    @unique
+  id        Int               @id @default(autoincrement())
+  jobNumber String            @unique
   name      String
   client    String
   startDate DateTime?
   endDate   DateTime?
+  status    ProjectStatusEnum @default(PLANNED)
 
-  // Relaciones 1:1 con deadlines
+  // Relaciones 1:1 con deadlines - cascade delete
   contract  Contract?
   bonding   Bonding?
   insurance Insurance?
   license   License?
 
-  // Relaciones 1:N
+  // Relaciones 1:N - cascade delete
   estimates        Estimate[]
   billings         Billing[]
   materials        MaterialOrder[]
@@ -144,21 +153,23 @@ model Project {
   documents        Document[]
   payrolls         Payroll[]
 
-  // Relación con empleados (asignaciones)
+  // Relación con empleados (asignaciones) - cascade delete
   employeeAssignments EmployeeProjectAssignment[]
   Task                Task[]
   DailyTimeEntry      DailyTimeEntry[]
   WeeklyTimecard      WeeklyTimecard[]
   MonthlyBilling      MonthlyBilling[]
-  ProjectStatusRef    ProjectStatusRef?           @relation(fields: [projectStatusRefId], references: [id])
-  projectStatusRefId  Int?
+
+  // Set null when status reference is deleted
+  ProjectStatusRef   ProjectStatusRef? @relation(fields: [projectStatusRefId], references: [id], onDelete: SetNull)
+  projectStatusRefId Int?
 }
 
 // ==== BONDING ====
 model Bonding {
   id        Int       @id @default(autoincrement())
   projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id])
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deadline  DateTime?
 }
 
@@ -166,7 +177,7 @@ model Bonding {
 model Insurance {
   id        Int       @id @default(autoincrement())
   projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id])
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deadline  DateTime?
 }
 
@@ -174,7 +185,7 @@ model Insurance {
 model License {
   id        Int       @id @default(autoincrement())
   projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id])
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deadline  DateTime?
 }
 
@@ -182,9 +193,9 @@ model License {
 model Payroll {
   id         Int      @id @default(autoincrement())
   projectId  Int
-  project    Project  @relation(fields: [projectId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   amount     Float
   weekStart  DateTime
   weekEnd    DateTime
@@ -194,7 +205,7 @@ model Payroll {
 model Document {
   id         Int      @id @default(autoincrement())
   projectId  Int
-  project    Project  @relation(fields: [projectId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name       String
   type       String
   url        String
@@ -204,7 +215,7 @@ model Document {
 model Contract {
   id                Int       @id @default(autoincrement())
   projectId         Int       @unique
-  project           Project   @relation(fields: [projectId], references: [id])
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   bondingDeadline   DateTime?
   insuranceDeadline DateTime?
   licenseDeadline   DateTime?
@@ -220,8 +231,8 @@ model EmployeeProjectAssignment {
   role       ProjectRole @default(WORKER)
   assignedAt DateTime    @default(now())
 
-  employee Employee @relation(fields: [employeeId], references: [id])
-  project  Project  @relation(fields: [projectId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, projectId]) // evita duplicados
 }
@@ -230,25 +241,25 @@ model EmployeeProjectAssignment {
 model Estimate {
   id          Int      @id @default(autoincrement())
   projectId   Int
-  project     Project  @relation(fields: [projectId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   description String
   amount      Float
   createdAt   DateTime @default(now())
 
   // Enriquecidos (tblEstimates/tblEstimators/tblEstimateStatus)
   estimatorId Int?
-  estimator   User?              @relation(fields: [estimatorId], references: [id])
+  estimator   User?              @relation(fields: [estimatorId], references: [id], onDelete: SetNull)
   status      String?
   notes       String?
   statusRefId Int?
-  statusRef   EstimateStatusRef? @relation(fields: [statusRefId], references: [id])
+  statusRef   EstimateStatusRef? @relation(fields: [statusRefId], references: [id], onDelete: SetNull)
 }
 
 // ==== BILLING ====
 model Billing {
   id        Int      @id @default(autoincrement())
   projectId Int
-  project   Project  @relation(fields: [projectId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   period    String
   amount    Float
   createdAt DateTime @default(now())
@@ -263,7 +274,7 @@ model Billing {
 model CertifiedPayroll {
   id        Int      @id @default(autoincrement())
   projectId Int
-  project   Project  @relation(fields: [projectId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   weekStart DateTime
   weekEnd   DateTime
   createdAt DateTime @default(now())
@@ -273,7 +284,7 @@ model CertifiedPayroll {
 model MaterialOrder {
   id          Int         @id @default(autoincrement())
   projectId   Int
-  project     Project     @relation(fields: [projectId], references: [id])
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   description String
   status      OrderStatus @default(SUBMITTED)
   submittedAt DateTime? // fecha submittal
@@ -287,28 +298,28 @@ model MaterialOrder {
 // ==== DELIVERIES ====
 model Delivery {
   id              Int           @id @default(autoincrement())
-  materialOrder   MaterialOrder @relation(fields: [materialOrderId], references: [id])
+  materialOrder   MaterialOrder @relation(fields: [materialOrderId], references: [id], onDelete: Cascade)
   materialOrderId Int
 
-  requestedBy   User @relation("RequestedBy", fields: [requestedById], references: [id])
+  requestedBy   User @relation("RequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
   requestedById Int
 
-  driver   User @relation("Driver", fields: [driverId], references: [id])
+  driver   User @relation("Driver", fields: [driverId], references: [id], onDelete: Restrict)
   driverId Int
 
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   vehicleId Int
 
   scheduledDate DateTime
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relación con usuario creador
-  User   User? @relation(fields: [userId], references: [id])
+  // Relación con usuario creador (set null when user is deleted)
+  User   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId Int?
 
-  // Relación con empleado (si aplica)
-  Employee   Employee? @relation(fields: [employeeId], references: [id])
+  // Relación con empleado (set null when employee is deleted)
+  Employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   employeeId Int?
 }
 
@@ -330,11 +341,11 @@ model Vehicle {
 model Task {
   id        Int     @id @default(autoincrement())
   projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   name           String // TaskName
   assignedToId   Int? // AssignedTo -> User.id (si aplica)
-  assignedTo     User?     @relation(fields: [assignedToId], references: [id])
+  assignedTo     User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   assignedAt     DateTime? // TaskDateAssigned
   dueDate        DateTime? // DueDate
   status         String? // Status (texto)
@@ -352,8 +363,8 @@ model DailyTimeEntry {
   overtimeHours Float?
   notes         String?
 
-  employee Employee @relation(fields: [employeeId], references: [id])
-  project  Project  @relation(fields: [projectId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // TARJETA SEMANAL (tblWeeklyTimecards)
@@ -365,8 +376,8 @@ model WeeklyTimecard {
   totalHours Float?
   notes      String?
 
-  employee Employee @relation(fields: [employeeId], references: [id])
-  project  Project  @relation(fields: [projectId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // AGREGADOS MENSUALES (tblMonthlyBilling)
@@ -377,7 +388,7 @@ model MonthlyBilling {
   projectId Int
   amount    Float
 
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, year, month])
 }
@@ -391,8 +402,8 @@ model EmployeeClassHistory {
   endDate          DateTime?
   reason           String?
 
-  employee       Employee               @relation(fields: [employeeId], references: [id])
-  classification EmployeeClassification @relation(fields: [classificationId], references: [id])
+  employee       Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  classification EmployeeClassification @relation(fields: [classificationId], references: [id], onDelete: Restrict)
 }
 
 // CATÁLOGO INFORMATIVO DE ESTADO DE PROYECTO (no reemplaza enums)
@@ -420,5 +431,5 @@ model EstimatorExternal {
   email  String? @unique
   userId Int?
 
-  user User? @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }

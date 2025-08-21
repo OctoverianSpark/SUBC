@@ -25,6 +25,7 @@ export default function NewProjectPage () {
     jobNumber: '',
     startDate: '',
     endDate: '',
+    client: '',
     status: 'PLANNED'
   })
 
@@ -46,7 +47,8 @@ export default function NewProjectPage () {
         ? new Date(form.startDate).toISOString()
         : undefined,
       endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
-      status: form.status
+      status: form.status,
+      client: form.client
     })
     toast({ title: 'Data Saved', description: 'Project has been created.' })
     router.push('/projects')
@@ -90,6 +92,16 @@ export default function NewProjectPage () {
                 value={form.jobNumber}
                 onChange={handleChange}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor='client'>Client</Label>
+              <Input
+                id='client'
+                type='text'
+                value={form.client}
+                onChange={handleChange}
               />
             </div>
             <div className='flex gap-4'>
