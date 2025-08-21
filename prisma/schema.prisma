@@ -103,6 +103,7 @@ model Employee {
 
   // Historial de clasificación
   classHistory EmployeeClassHistory[]
+  Payroll      Payroll[]
 }
 
 model EmployeeClassification {
@@ -122,90 +123,82 @@ model EmployeeLevelModel {
 // ==== PROJECTS & CONTRACTS ====
 // --- Agrega estas relaciones en Project ---
 model Project {
-  id               Int                @id @default(autoincrement())
-  name             String
-  client           String
-  startDate        DateTime?
-  endDate          DateTime?
-  contract         Contract?
+  id        Int       @id @default(autoincrement())
+  jobNumber String    @unique
+  name      String
+  client    String
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Relaciones 1:1 con deadlines
+  contract  Contract?
+  bonding   Bonding?
+  insurance Insurance?
+  license   License?
+
+  // Relaciones 1:N
   estimates        Estimate[]
   billings         Billing[]
   materials        MaterialOrder[]
   CertifiedPayroll CertifiedPayroll[]
+  documents        Document[]
+  payrolls         Payroll[]
 
   // Relación con empleados (asignaciones)
   employeeAssignments EmployeeProjectAssignment[]
-
-  // NUEVO: relaciones con tablas adjuntas del proyecto
-  bondings           Bonding[]
-  insurances         Insurance[]
-  licenses           License[]
-  documents          Document[]
-  Task               Task[]
-  DailyTimeEntry     DailyTimeEntry[]
-  WeeklyTimecard     WeeklyTimecard[]
-  MonthlyBilling     MonthlyBilling[]
-  ProjectStatusRef   ProjectStatusRef? @relation(fields: [projectStatusRefId], references: [id])
-  projectStatusRefId Int?
+  Task                Task[]
+  DailyTimeEntry      DailyTimeEntry[]
+  WeeklyTimecard      WeeklyTimecard[]
+  MonthlyBilling      MonthlyBilling[]
+  ProjectStatusRef    ProjectStatusRef?           @relation(fields: [projectStatusRefId], references: [id])
+  projectStatusRefId  Int?
 }
 
-// --- Modelos que tu UI utiliza ---
-
+// ==== BONDING ====
 model Bonding {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-
-  provider  String
-  amount    Float
-  startDate DateTime
-  endDate   DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  projectId Int       @unique
+  project   Project   @relation(fields: [projectId], references: [id])
+  deadline  DateTime?
 }
 
+// ==== INSURANCE ====
 model Insurance {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-
-  provider     String
-  policyNumber String
-  coverage     String
-  startDate    DateTime
-  endDate      DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  projectId Int       @unique
+  project   Project   @relation(fields: [projectId], references: [id])
+  deadline  DateTime?
 }
 
+// ==== LICENSE ====
 model License {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-
-  type      String
-  number    String
-  issuedBy  String
-  validFrom DateTime
-  validTo   DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  projectId Int       @unique
+  project   Project   @relation(fields: [projectId], references: [id])
+  deadline  DateTime?
 }
 
-model Document {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
+// ==== PAYROLL ====
+model Payroll {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  project    Project  @relation(fields: [projectId], references: [id])
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  amount     Float
+  weekStart  DateTime
+  weekEnd    DateTime
+}
 
+// ==== DOCUMENTS ====
+model Document {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  project    Project  @relation(fields: [projectId], references: [id])
   name       String
+  type       String
   url        String
   uploadedAt DateTime @default(now())
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Contract {
