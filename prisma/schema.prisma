@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,240 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  Estimate Estimate[]
-  projects Project[]
-  tasks    Task[]
-
-  // Relaciones a MaterialRequest
-  requests  MaterialRequest[] @relation("Requester")
-  approvals MaterialRequest[] @relation("Approver")
-}
-
-model Project {
-  id              Int               @id @default(autoincrement())
-  jobNumber       String
-  name            String
-  managerId       Int?
-  startDate       DateTime?
-  endDate         DateTime?
-  status          ProjectStatus     @default(PLANNED)
-  billings        Billing[]
-  bondings        Bonding[]
-  DailyTimeEntry  DailyTimeEntry[]
-  documents       Document[]
-  estimates       Estimate[]
-  insurances      Insurance[]
-  licenses        License[]
-  manager         User?             @relation(fields: [managerId], references: [id])
-  tasks           Task[]
-  WeeklyTimecard  WeeklyTimecard[]
-  MaterialRequest MaterialRequest[]
-}
-
-model Task {
-  id           Int       @id @default(autoincrement())
-  name         String
-  assignedToId Int?
-  dueDate      DateTime?
-  projectId    Int
-  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
-  project      Project   @relation(fields: [projectId], references: [id])
-}
-
-model Estimate {
-  id          Int            @id @default(autoincrement())
-  projectId   Int
-  estimatorId Int?
-  amount      Float
-  createdAt   DateTime       @default(now())
-  status      EstimateStatus
-  estimator   User?          @relation(fields: [estimatorId], references: [id])
-  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model Billing {
-  id        Int       @id @default(autoincrement())
-  projectId Int
-  dueDate   DateTime?
-  amount    Float
-  issuedAt  DateTime  @default(now())
-  paid      Boolean   @default(false)
-  project   Project   @relation(fields: [projectId], references: [id])
-}
-
-model Employee {
-  id               Int                      @id @default(autoincrement())
-  firstName        String
-  lastName         String
-  address          String?
-  city             String?
-  dailyTimeEntries DailyTimeEntry[]
-  classifications  EmployeeClassification[]
-  payrolls         Payroll[]
-  weeklyTimecards  WeeklyTimecard[]
-}
-
-model Classification {
-  id              Int                      @id @default(autoincrement())
-  name            String
-  craftCode       String
-  payRate         Float
-  effectiveDate   DateTime
-  employeeHistory EmployeeClassification[]
-}
-
-model EmployeeClassification {
-  id               Int            @id @default(autoincrement())
-  employeeId       Int
-  classificationId Int
-  startDate        DateTime
-  endDate          DateTime?
-  classification   Classification @relation(fields: [classificationId], references: [id])
-  employee         Employee       @relation(fields: [employeeId], references: [id])
-}
-
-model DailyTimeEntry {
-  id            Int      @id @default(autoincrement())
-  employeeId    Int
-  projectId     Int
-  workDate      DateTime
-  hoursWorked   Float
-  overtimeHours Float?
-  employee      Employee @relation(fields: [employeeId], references: [id])
-  project       Project  @relation(fields: [projectId], references: [id])
-}
-
-model WeeklyTimecard {
-  id            Int      @id @default(autoincrement())
-  employeeId    Int
-  projectId     Int
-  weekStartDate DateTime
-  notes         String?
-  employee      Employee @relation(fields: [employeeId], references: [id])
-  project       Project  @relation(fields: [projectId], references: [id])
-}
-
-model Payroll {
-  id          Int      @id @default(autoincrement())
-  employeeId  Int
-  periodStart DateTime
-  periodEnd   DateTime
-  totalHours  Float
-  grossPay    Float
-  deductions  Float
-  netPay      Float
-  createdAt   DateTime @default(now())
-  employee    Employee @relation(fields: [employeeId], references: [id])
-}
-
-model Bonding {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  provider  String
-  amount    Float
-  startDate DateTime
-  endDate   DateTime
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model Insurance {
-  id           Int      @id @default(autoincrement())
-  projectId    Int
-  provider     String
-  policyNumber String
-  coverage     String
-  startDate    DateTime
-  endDate      DateTime
-  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model License {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  type      String
-  number    String
-  issuedBy  String
-  validFrom DateTime
-  validTo   DateTime
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model Document {
-  id         Int      @id @default(autoincrement())
-  projectId  Int
-  name       String
-  url        String
-  uploadedAt DateTime @default(now())
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model MaterialRequest {
-  id          Int            @id @default(autoincrement())
-  projectId   Int
-  material    String
-  quantity    Float
-  status      MaterialStatus @default(PENDING)
-  requestedBy Int
-  approvedBy  Int?
-
-  requestedAt DateTime  @default(now())
-  approvedAt  DateTime?
-
-  project       Project         @relation(fields: [projectId], references: [id])
-  requester     User            @relation("Requester", fields: [requestedBy], references: [id])
-  approver      User?           @relation("Approver", fields: [approvedBy], references: [id])
-  MaterialOrder MaterialOrder[]
-}
-
-model MaterialOrder {
-  id              Int             @id @default(autoincrement())
-  requestId       Int
-  supplier        String
-  orderDate       DateTime        @default(now())
-  status          OrderStatus     @default(PENDING)
-  materialRequest MaterialRequest @relation(fields: [requestId], references: [id])
-  Delivery        Delivery[]
-}
-
-model Delivery {
-  id               Int            @id @default(autoincrement())
-  orderId          Int
-  deliveredAt      DateTime?
-  quantityReceived Float
-  status           DeliveryStatus @default(PENDING)
-  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id])
-}
-
-enum DeliveryStatus {
-  PENDING
-  RECEIVED
-  PARTIAL
-  DAMAGED
-}
-
-enum OrderStatus {
-  PENDING
-  ORDERED
-  IN_TRANSIT
-  DELIVERED
-}
-
-enum MaterialStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
+// ==== ENUMS ====
 enum Role {
   ADMIN
   OWNER
@@ -251,17 +19,413 @@ enum Role {
   USER
 }
 
-enum EstimateStatus {
-  IN_PROGRESS
-  SUBMITTED
-  AWARDED
-  REJECTED
-  DRAFT
+enum EmployeeLevel {
+  APPRENTICE
+  JOURNEYMAN
+  FOREMAN
+  SUPERINTENDENT
 }
 
-enum ProjectStatus {
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
-  ON_HOLD
+enum OrderStatus {
+  SUBMITTED
+  APPROVED
+  ORDERED
+  SCHEDULED
+  DELIVERED_TO_OFFICE
+  DELIVERED_TO_SITE
+}
+
+enum ProjectRole {
+  WORKER
+  SUPERVISOR
+  MANAGER
+}
+
+// ==== USERS ====
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación: Deliveries solicitadas por este usuario
+  requestedDeliveries Delivery[] @relation("RequestedBy")
+
+  // Relación: Deliveries donde este usuario es el driver
+  driverDeliveries Delivery[] @relation("Driver")
+
+  // Relación con empleados
+  Employee Employee[]
+
+  // Relación con Deliveries creados
+  Delivery          Delivery[]
+  Estimate          Estimate[]
+  Task              Task[]
+  EstimatorExternal EstimatorExternal[]
+}
+
+// ==== EMPLOYEES ====
+model Employee {
+  id               Int                    @id @default(autoincrement())
+  firstName        String
+  lastName         String
+  email            String?                @unique
+  phone            String?
+  classificationId Int
+  classification   EmployeeClassification @relation(fields: [classificationId], references: [id])
+  levelId          Int
+  level            EmployeeLevelModel     @relation(fields: [levelId], references: [id])
+  hireDate         DateTime?
+  active           Boolean                @default(true)
+
+  // Enriquecidos desde Excel
+  address         String?
+  city            String?
+  state           String?
+  zip             String?
+  terminationDate DateTime?
+
+  // Relación con entregas
+  deliveries Delivery[]
+
+  // Relación con usuario
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int?
+
+  // Relación con proyectos (asignaciones)
+  projectAssignments EmployeeProjectAssignment[]
+
+  // Timesheets
+  dailyTimeEntries DailyTimeEntry[]
+  weeklyTimecards  WeeklyTimecard[]
+
+  // Historial de clasificación
+  classHistory EmployeeClassHistory[]
+}
+
+model EmployeeClassification {
+  id          Int                    @id @default(autoincrement())
+  name        String
+  description String?
+  employees   Employee[]
+  history     EmployeeClassHistory[]
+}
+
+model EmployeeLevelModel {
+  id        Int        @id @default(autoincrement())
+  name      String
+  employees Employee[]
+}
+
+// ==== PROJECTS & CONTRACTS ====
+// --- Agrega estas relaciones en Project ---
+model Project {
+  id               Int                @id @default(autoincrement())
+  name             String
+  client           String
+  startDate        DateTime?
+  endDate          DateTime?
+  contract         Contract?
+  estimates        Estimate[]
+  billings         Billing[]
+  materials        MaterialOrder[]
+  CertifiedPayroll CertifiedPayroll[]
+
+  // Relación con empleados (asignaciones)
+  employeeAssignments EmployeeProjectAssignment[]
+
+  // NUEVO: relaciones con tablas adjuntas del proyecto
+  bondings           Bonding[]
+  insurances         Insurance[]
+  licenses           License[]
+  documents          Document[]
+  Task               Task[]
+  DailyTimeEntry     DailyTimeEntry[]
+  WeeklyTimecard     WeeklyTimecard[]
+  MonthlyBilling     MonthlyBilling[]
+  ProjectStatusRef   ProjectStatusRef? @relation(fields: [projectStatusRefId], references: [id])
+  projectStatusRefId Int?
+}
+
+// --- Modelos que tu UI utiliza ---
+
+model Bonding {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  provider  String
+  amount    Float
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Insurance {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  provider     String
+  policyNumber String
+  coverage     String
+  startDate    DateTime
+  endDate      DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model License {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  type      String
+  number    String
+  issuedBy  String
+  validFrom DateTime
+  validTo   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Document {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  name       String
+  url        String
+  uploadedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Contract {
+  id                Int       @id @default(autoincrement())
+  projectId         Int       @unique
+  project           Project   @relation(fields: [projectId], references: [id])
+  bondingDeadline   DateTime?
+  insuranceDeadline DateTime?
+  licenseDeadline   DateTime?
+  payrollDeadline   DateTime?
+  materialsDeadline DateTime?
+}
+
+// Tabla intermedia para asignar empleados a proyectos
+model EmployeeProjectAssignment {
+  id         Int         @id @default(autoincrement())
+  employeeId Int
+  projectId  Int
+  role       ProjectRole @default(WORKER)
+  assignedAt DateTime    @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  project  Project  @relation(fields: [projectId], references: [id])
+
+  @@unique([employeeId, projectId]) // evita duplicados
+}
+
+// ==== ESTIMATES ====
+model Estimate {
+  id          Int      @id @default(autoincrement())
+  projectId   Int
+  project     Project  @relation(fields: [projectId], references: [id])
+  description String
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  // Enriquecidos (tblEstimates/tblEstimators/tblEstimateStatus)
+  estimatorId Int?
+  estimator   User?              @relation(fields: [estimatorId], references: [id])
+  status      String?
+  notes       String?
+  statusRefId Int?
+  statusRef   EstimateStatusRef? @relation(fields: [statusRefId], references: [id])
+}
+
+// ==== BILLING ====
+model Billing {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id])
+  period    String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  // Enriquecidos (tblBilling)
+  invoiceNumber String?
+  dueDate       DateTime?
+  notes         String?
+}
+
+// ==== CERTIFIED PAYROLL ====
+model CertifiedPayroll {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id])
+  weekStart DateTime
+  weekEnd   DateTime
+  createdAt DateTime @default(now())
+}
+
+// ==== MATERIAL ORDERS ====
+model MaterialOrder {
+  id          Int         @id @default(autoincrement())
+  projectId   Int
+  project     Project     @relation(fields: [projectId], references: [id])
+  description String
+  status      OrderStatus @default(SUBMITTED)
+  submittedAt DateTime? // fecha submittal
+  approvedAt  DateTime? // aprobación GC
+  orderedAt   DateTime? // fecha ordenado
+  officeETA   DateTime? // fecha entrega oficina
+  siteETA     DateTime? // fecha entrega sitio
+  deliveries  Delivery[]
+}
+
+// ==== DELIVERIES ====
+model Delivery {
+  id              Int           @id @default(autoincrement())
+  materialOrder   MaterialOrder @relation(fields: [materialOrderId], references: [id])
+  materialOrderId Int
+
+  requestedBy   User @relation("RequestedBy", fields: [requestedById], references: [id])
+  requestedById Int
+
+  driver   User @relation("Driver", fields: [driverId], references: [id])
+  driverId Int
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId Int
+
+  scheduledDate DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relación con usuario creador
+  User   User? @relation(fields: [userId], references: [id])
+  userId Int?
+
+  // Relación con empleado (si aplica)
+  Employee   Employee? @relation(fields: [employeeId], references: [id])
+  employeeId Int?
+}
+
+// ==== VEHICLES ====
+model Vehicle {
+  id        Int      @id @default(autoincrement())
+  plate     String   @unique
+  model     String
+  capacity  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliveries Delivery[]
+}
+
+// ==== NUEVOS MODELOS DESDE EXCEL ====
+
+// TAREAS (tblTasks)
+model Task {
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id])
+
+  name           String // TaskName
+  assignedToId   Int? // AssignedTo -> User.id (si aplica)
+  assignedTo     User?     @relation(fields: [assignedToId], references: [id])
+  assignedAt     DateTime? // TaskDateAssigned
+  dueDate        DateTime? // DueDate
+  status         String? // Status (texto)
+  completionDate DateTime? // CompletionDate
+  notes          String? // Notes
+}
+
+// PARTES DIARIAS (tblDailyTimeEntries)
+model DailyTimeEntry {
+  id            Int      @id @default(autoincrement())
+  employeeId    Int
+  projectId     Int
+  workDate      DateTime
+  hoursWorked   Float
+  overtimeHours Float?
+  notes         String?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  project  Project  @relation(fields: [projectId], references: [id])
+}
+
+// TARJETA SEMANAL (tblWeeklyTimecards)
+model WeeklyTimecard {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  projectId  Int
+  weekStart  DateTime // WeekStartDate
+  totalHours Float?
+  notes      String?
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  project  Project  @relation(fields: [projectId], references: [id])
+}
+
+// AGREGADOS MENSUALES (tblMonthlyBilling)
+model MonthlyBilling {
+  id        Int   @id @default(autoincrement())
+  year      Int
+  month     Int
+  projectId Int
+  amount    Float
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, year, month])
+}
+
+// HISTORIAL DE CLASIFICACIÓN (tblEmployeeClassHistory)
+model EmployeeClassHistory {
+  id               Int       @id @default(autoincrement())
+  employeeId       Int
+  classificationId Int
+  startDate        DateTime
+  endDate          DateTime?
+  reason           String?
+
+  employee       Employee               @relation(fields: [employeeId], references: [id])
+  classification EmployeeClassification @relation(fields: [classificationId], references: [id])
+}
+
+// CATÁLOGO INFORMATIVO DE ESTADO DE PROYECTO (no reemplaza enums)
+model ProjectStatusRef {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique // p.ej. "IN_PROGRESS"
+  name        String
+  description String?
+  projects    Project[]
+}
+
+// CATÁLOGO INFORMATIVO DE ESTADO DE ESTIMATE (no reemplaza enums)
+model EstimateStatusRef {
+  id          Int        @id @default(autoincrement())
+  code        String     @unique // p.ej. "SUBMITTED"
+  name        String
+  description String?
+  estimates   Estimate[]
+}
+
+// STAGING OPCIONAL: ESTIMADORES EXTERNOS (tblEstimators)
+model EstimatorExternal {
+  id     Int     @id @default(autoincrement())
+  name   String?
+  email  String? @unique
+  userId Int?
+
+  user User? @relation(fields: [userId], references: [id])
 }
