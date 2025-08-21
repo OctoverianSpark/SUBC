@@ -171,6 +171,18 @@ export const documentDb = {
   delete: (id: number) => prisma.document.delete({ where: { id } })
 }
 
+// ======================= MATERIAL ORDERS =======================
+export const materialOrderDb = {
+  findAll: () => prisma.materialOrder.findMany(),
+  findById: (id: number) => prisma.materialOrder.findUnique({ where: { id } }),
+  findByProjectId: (projectId: number) =>
+    prisma.materialOrder.findMany({ where: { projectId }, orderBy: { id: 'desc' } }),
+  create: (data: any) => prisma.materialOrder.create({ data }),
+  update: (id: number, data: any) =>
+    prisma.materialOrder.update({ where: { id }, data }),
+  delete: (id: number) => prisma.materialOrder.delete({ where: { id } })
+}
+
 // ======================= AUTH =======================
 export async function validateUser(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } })

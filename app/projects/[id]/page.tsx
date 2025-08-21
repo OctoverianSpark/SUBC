@@ -4,7 +4,8 @@ import {
   bondingDb,
   insuranceDb,
   licenseDb,
-  documentDb
+  documentDb,
+  materialOrderDb
 } from '@/lib/db'
 import { requireAuthOrRedirect } from '@/lib/cookies'
 import ProjectDetailClient from './ProjectDetailClient'
@@ -23,6 +24,7 @@ export default async function ProjectDetailPage ({
   const insurances = await insuranceDb.findAll()
   const licenses = await licenseDb.findAll()
   const documents = await documentDb.findAll()
+  const materialOrders = await materialOrderDb.findAll()
 
   return (
     <ProjectDetailClient
@@ -31,6 +33,7 @@ export default async function ProjectDetailPage ({
       insurances={insurances}
       licenses={licenses}
       documents={documents}
+      materialOrders={materialOrders}
     />
   )
 }
