@@ -24,7 +24,7 @@ export default async function ProjectDetailPage ({
   const insurances = await insuranceDb.findAll()
   const licenses = await licenseDb.findAll()
   const documents = await documentDb.findAll()
-  const materialOrders = await materialOrderDb.findAll()
+  const materialOrders = await materialOrderDb.findByProjectId(project.id)
 
   return (
     <ProjectDetailClient

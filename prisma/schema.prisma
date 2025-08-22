@@ -66,14 +66,15 @@ model Estimate {
 }
 
 model Billing {
-  id        Int       @id @default(autoincrement())
-  projectId Int
-  amount    Float
-  createdAt DateTime  @default(now())
-  dueDate   DateTime?
-  issuedAt  DateTime  @default(now())
-  paid      Boolean   @default(false)
-  project   Project   @relation(fields: [projectId], references: [id])
+  id            Int       @id @default(autoincrement())
+  projectId     Int
+  amount        Float
+  createdAt     DateTime  @default(now())
+  dueDate       DateTime?
+  issuedAt      DateTime  @default(now())
+  invoiceNumber String    @unique
+  paid          Boolean   @default(false)
+  project       Project   @relation(fields: [projectId], references: [id])
 }
 
 model Employee {
@@ -202,24 +203,24 @@ model MaterialRequest {
 }
 
 model MaterialOrder {
-  id              Int             @id @default(autoincrement())
-  requestId       Int
-  supplier        String
-  orderDate       DateTime        @default(now())
-  status          OrderStatus     @default(PENDING)
-  description     String?
-  quantity        Float?
-  unitPrice       Float?
-  totalAmount     Float?
-  submittedAt     DateTime?
-  approvedAt      DateTime?
-  orderedAt       DateTime?
+  id               Int             @id @default(autoincrement())
+  requestId        Int
+  supplier         String
+  orderDate        DateTime        @default(now())
+  status           OrderStatus     @default(PENDING)
+  description      String?
+  quantity         Float?
+  unitPrice        Float?
+  totalAmount      Float?
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  orderedAt        DateTime?
   expectedDelivery DateTime?
-  notes           String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  Delivery        Delivery[]
-  materialRequest MaterialRequest @relation(fields: [requestId], references: [id])
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  Delivery         Delivery[]
+  materialRequest  MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
 
 model Delivery {
@@ -228,7 +229,7 @@ model Delivery {
   orderId          Int
   quantityReceived Float
   status           DeliveryStatus @default(PENDING)
-  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id])
+  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 enum DeliveryStatus {

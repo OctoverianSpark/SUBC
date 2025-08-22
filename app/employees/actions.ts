@@ -1,32 +1,31 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { employeeDb } from '@/lib/db'
+import { classificationDb, employeeDb } from '@/lib/db'
+import { Employee } from '@prisma/client'
 
-// Crear empleado
-export async function createEmployee(formData: FormData) {
-  const data = {
-    firstName: formData.get('firstName') as string,
-    lastName: formData.get('lastName') as string,
-    address: formData.get('address') as string,
-    city: formData.get('city') as string,
-  }
-  await employeeDb.create(data)
-  revalidatePath('/employees')
+
+
+export async function getClassifications(){
+  return await classificationDb.findAll()
 }
 
-// Editar empleado
-export async function updateEmployee(id: number, formData: FormData) {
-  const data = {
-    firstName: formData.get('firstName') as string,
-    lastName: formData.get('lastName') as string,
-    address: formData.get('address') as string,
-    city: formData.get('city') as string,
-  }
-  await employeeDb.update(id, data)
-  revalidatePath('/employees')
-}
+export async function createEmployee(data: {
+  firstName: string
+  lastName: string
+  address: string | null
+  city: string | null
+  classificationIds: number[]
+}) {
+  const { classificationIds, ...rest } = data
+  const ids = Array.from(new Set(classificationIds)).filter(Number.isInteger)
 
+  // 👉 pasa campos planos + classificationIds (NO "classifications")
+  return employeeDb.create({
+    ...rest,
+    classificationIds: ids
+  })
+}
 // Eliminar empleado
 export async function deleteEmployee(id: number) {
   await employeeDb.delete(id)

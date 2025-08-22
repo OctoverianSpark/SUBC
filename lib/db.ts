@@ -15,7 +15,7 @@ export const userDb = {
 
 // ======================= PROJECTS =======================
 export const projectDb = {
-  findAll: () => prisma.project.findMany(),
+  findAll: (config = {}) => prisma.project.findMany(config),
   findById: (id: number) => prisma.project.findUnique({ where: { id } }),
   findWithRelations: (id: number) =>
     prisma.project.findUnique({
@@ -57,25 +57,86 @@ export const estimateDb = {
 }
 
 // ======================= BILLING =======================
+type CreateBillingInput = {
+  projectId: number
+  amount: number
+  dueDate: Date | null
+  paid: boolean
+  invoiceNumber: string
+}
 export const billingDb = {
-  findAll: () => prisma.billing.findMany(),
-  findById: (id: number) => prisma.billing.findUnique({ where: { id } }),
+  findAll: () => prisma.billing.findMany({
+    include: { project: {select: {name: true}}}
+  }),
+  findById: (id: number) => prisma.billing.findUnique({ where: { id },include: { project: {select: {name: true}}} }),
   findByProjectId: (projectId: number) =>
     prisma.billing.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } }),
-  create: (data: any) => prisma.billing.create({ data }),
+    create: (input: CreateBillingInput) =>
+    prisma.billing.create({
+      data: {
+        projectId: input.projectId,
+        amount: input.amount,
+        dueDate: input.dueDate,
+        paid: input.paid,
+        invoiceNumber: input.invoiceNumber
+      }
+    }),
   update: (id: number, data: any) => prisma.billing.update({ where: { id }, data }),
   delete: (id: number) => prisma.billing.delete({ where: { id } })
 }
 
 // ======================= EMPLOYEES =======================
+
+type CreateEmployeeInput = {
+  firstName: string
+  lastName: string
+  address: string | null
+  city: string | null
+  classificationIds: number[]
+}
+
 export const employeeDb = {
   findAll: () => prisma.employee.findMany(),
   findById: (id: number) => prisma.employee.findUnique({ where: { id } }),
-  create: (data: any) => prisma.employee.create({ data }),
-  update: (id: number, data: any) => prisma.employee.update({ where: { id }, data }),
+
+  // ⬇️ AJUSTADO: transforma classificationIds -> classifications.connect
+  create: async (input: CreateEmployeeInput) => {
+    const { classificationIds, ...rest } = input
+    const ids = Array.from(new Set(classificationIds)).filter(Number.isInteger)
+
+    return prisma.employee.create({
+      data: {
+        ...rest,
+        ...(ids.length
+          ? { classifications: { connect: ids.map(id => ({ id })) } }
+          : {})
+      },
+      include: { classifications: true }
+    })
+  },
+
+  update: async (
+    id: number,
+    input: Partial<Omit<CreateEmployeeInput, 'classificationIds'>> & { classificationIds?: number[] }
+  ) => {
+    const ids = input.classificationIds
+      ? Array.from(new Set(input.classificationIds)).filter(Number.isInteger)
+      : undefined
+
+    return prisma.employee.update({
+      where: { id },
+      data: {
+        ...input,
+        ...(ids
+          ? { classifications: { set: ids.map(id => ({ id })) } } // reemplaza el set completo
+          : {})
+      },
+      include: { classifications: true }
+    })
+  },
+
   delete: (id: number) => prisma.employee.delete({ where: { id } })
 }
-
 // ======================= CLASSIFICATIONS =======================
 export const employeeClassificationDb = {
   findAll: () => prisma.employeeClassification.findMany(),
@@ -83,6 +144,13 @@ export const employeeClassificationDb = {
   create: (data: any) => prisma.employeeClassification.create({ data }),
   update: (id: number, data: any) => prisma.employeeClassification.update({ where: { id }, data }),
   delete: (id: number) => prisma.employeeClassification.delete({ where: { id } })
+}
+export const classificationDb = {
+  findAll: () => prisma.classification.findMany(),
+  findById: (id: number) => prisma.classification.findUnique({ where: { id } }),
+  create: (data: any) => prisma.classification.create({ data }),
+  update: (id: number, data: any) => prisma.classification.update({ where: { id }, data }),
+  delete: (id: number) => prisma.classification.delete({ where: { id } })
 }
 
 // ======================= DAILY TIME ENTRY =======================
@@ -199,9 +267,26 @@ export const materialOrderDb = {
     prisma.materialOrder.findMany({ 
       where: { materialRequest: { projectId } }, 
       orderBy: { orderDate: 'desc' },
-      include: { materialRequest: true }
+      include: { 
+        materialRequest: {
+          include: {
+            requester: true,
+            approver: true
+          }
+        }
+      }
     }),
-  create: (data: any) => prisma.materialOrder.create({ data, include: { materialRequest: true } }),
+  create: (data: any) => prisma.materialOrder.create({ 
+    data, 
+    include: { 
+      materialRequest: {
+        include: {
+          requester: true,
+          approver: true
+        }
+      }
+    }
+  }),
   update: (id: number, data: any) =>
     prisma.materialOrder.update({ where: { id }, data, include: { materialRequest: true } }),
   delete: (id: number) => prisma.materialOrder.delete({ where: { id } })

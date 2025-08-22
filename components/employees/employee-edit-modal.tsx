@@ -1,6 +1,5 @@
 'use client'
 
-import { updateEmployee } from '@/app/employees/actions'
 import { useState } from 'react'
 
 export default function EditEmployeeModal ({ employee }: { employee: any }) {
