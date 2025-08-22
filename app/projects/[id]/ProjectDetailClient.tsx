@@ -36,18 +36,12 @@ function BondingForm ({ projectId, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     provider: '',
     amount: '',
-    startDate: '',
-    endDate: ''
+    deadline: ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async () => {
-    if (
-      !formData.provider ||
-      !formData.amount ||
-      !formData.startDate ||
-      !formData.endDate
-    ) {
+    if (!formData.provider || !formData.amount || !formData.deadline) {
       alert('Please fill in all required fields.')
       return
     }
@@ -57,15 +51,15 @@ function BondingForm ({ projectId, onSubmit, onCancel }) {
     try {
       const result = await createBonding({
         projectId,
-        provider: formData.provider,
         amount: parseFloat(formData.amount),
-        startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate)
+        deadline: new Date(formData.deadline)
       })
 
       if (result.success) {
         onSubmit(result.data)
       } else {
+        console.log(result)
+
         alert(result.error || 'Error creating bonding. Please try again.')
       }
     } catch (error) {
@@ -118,25 +112,12 @@ function BondingForm ({ projectId, onSubmit, onCancel }) {
       <div className='grid grid-cols-2 gap-4'>
         <div>
           <label className='block text-sm font-medium text-gray-700 mb-1'>
-            Start Date
+            Deadline
           </label>
           <input
             type='date'
-            name='startDate'
-            value={formData.startDate}
-            onChange={handleChange}
-            disabled={isLoading}
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
-          />
-        </div>
-        <div>
-          <label className='block text-sm font-medium text-gray-700 mb-1'>
-            End Date
-          </label>
-          <input
-            type='date'
-            name='endDate'
-            value={formData.endDate}
+            name='deadline'
+            value={formData.deadline}
             onChange={handleChange}
             disabled={isLoading}
             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
@@ -501,9 +482,7 @@ function MaterialOrderForm ({ projectId, onSubmit, onCancel }) {
         officeETA: formData.officeETA
           ? new Date(formData.officeETA)
           : undefined,
-        siteETA: formData.siteETA
-          ? new Date(formData.siteETA)
-          : undefined
+        siteETA: formData.siteETA ? new Date(formData.siteETA) : undefined
       })
 
       if (result.success) {
@@ -1013,16 +992,16 @@ export default function ProjectDetailClient ({
                     className='border-l-4 border-red-400 pl-4 py-3 bg-red-50 rounded-r-md'
                   >
                     <div className='font-medium text-gray-900'>
-                      {o.description}
+                      {o.material}
                     </div>
                     <div className='text-sm text-gray-700'>
                       Status: {o.status}
                     </div>
                     <div className='text-sm text-gray-500'>
-                      {o.submittedAt && (
-                        <span>Submitted: {formatDate(o.submittedAt)} </span>
+                      <span>Submitted: {formatDate(o.requestedAt)} </span>
+                      {o.siteETA && (
+                        <span> | Site ETA: {formatDate(o.siteETA)}</span>
                       )}
-                      {o.siteETA && <span> | Site ETA: {formatDate(o.siteETA)}</span>}
                     </div>
                   </div>
                 ))}

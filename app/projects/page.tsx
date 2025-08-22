@@ -34,7 +34,7 @@ export default async function ProjectsPage () {
   if (user?.role === 'ADMIN' || user?.role === 'OWNER') {
     projects = (await projectDb.findAll()).map(p => ({
       ...p,
-      managerId: p.managerId ?? undefined,
+      managerId: p.userId ?? undefined,
       startDate: p.startDate
         ? typeof p.startDate === 'string'
           ? p.startDate
@@ -49,10 +49,10 @@ export default async function ProjectsPage () {
     }))
   } else if (user?.role === 'PROJECT_MANAGER') {
     projects = (await projectDb.findAll())
-      .filter(p => p.managerId === user.id)
+      .filter(p => p.userId === user.id)
       .map(p => ({
         ...p,
-        managerId: p.managerId ?? undefined,
+        managerId: p.userId ?? undefined,
         startDate: p.startDate
           ? typeof p.startDate === 'string'
             ? p.startDate

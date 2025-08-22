@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,352 +7,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==== ENUMS ====
-enum Role {
-  ADMIN
-  OWNER
-  PROJECT_MANAGER
-  ESTIMATOR
-  BILLING
-  PAYROLL
-  USER
-}
-
-enum EmployeeLevel {
-  APPRENTICE
-  JOURNEYMAN
-  FOREMAN
-  SUPERINTENDENT
-}
-
-enum OrderStatus {
-  SUBMITTED
-  APPROVED
-  ORDERED
-  SCHEDULED
-  DELIVERED_TO_OFFICE
-  DELIVERED_TO_SITE
-}
-
-enum ProjectRole {
-  WORKER
-  SUPERVISOR
-  MANAGER
-}
-
-enum ProjectStatusEnum {
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
-  ON_HOLD
-  CANCELLED
-}
-
-// ==== USERS ====
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String?
-  email     String   @unique
+  id        Int               @id @default(autoincrement())
+  email     String            @unique
   password  String
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relación: Deliveries solicitadas por este usuario
-  requestedDeliveries Delivery[] @relation("RequestedBy")
-
-  // Relación: Deliveries donde este usuario es el driver
-  driverDeliveries Delivery[] @relation("Driver")
-
-  // Relación con empleados (cascade delete: cuando se borra el usuario, el empleado queda sin usuario pero no se borra)
-  Employee Employee[]
-
-  // Relación con Deliveries creados (cascade delete)
-  Delivery          Delivery[]
-  Estimate          Estimate[]
-  Task              Task[]
-  EstimatorExternal EstimatorExternal[]
+  role      Role              @default(USER)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  name      String
+  active    Boolean           @default(true)
+  Estimate  Estimate[]
+  approvals MaterialRequest[] @relation("Approver")
+  requests  MaterialRequest[] @relation("Requester")
+  projects  Project[]
+  tasks     Task[]
 }
 
-// ==== EMPLOYEES ====
+model Project {
+  id              Int               @id @default(autoincrement())
+  name            String
+  startDate       DateTime?
+  endDate         DateTime?
+  jobNumber       String
+  managerId       Int?
+  status          ProjectStatus     @default(PLANNED)
+  billings        Billing[]
+  bondings        Bonding[]
+  DailyTimeEntry  DailyTimeEntry[]
+  documents       Document[]
+  estimates       Estimate[]
+  insurances      Insurance[]
+  licenses        License[]
+  MaterialRequest MaterialRequest[]
+  manager         User?             @relation(fields: [managerId], references: [id])
+  tasks           Task[]
+  WeeklyTimecard  WeeklyTimecard[]
+}
+
+model Task {
+  id           Int       @id @default(autoincrement())
+  projectId    Int
+  name         String
+  assignedToId Int?
+  dueDate      DateTime?
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id])
+}
+
+model Estimate {
+  id          Int            @id @default(autoincrement())
+  projectId   Int
+  amount      Float
+  createdAt   DateTime       @default(now())
+  estimatorId Int?
+  status      EstimateStatus
+  estimator   User?          @relation(fields: [estimatorId], references: [id])
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Billing {
+  id        Int       @id @default(autoincrement())
+  projectId Int
+  amount    Float
+  createdAt DateTime  @default(now())
+  dueDate   DateTime?
+  issuedAt  DateTime  @default(now())
+  paid      Boolean   @default(false)
+  project   Project   @relation(fields: [projectId], references: [id])
+}
+
 model Employee {
-  id               Int                    @id @default(autoincrement())
+  id               Int                      @id @default(autoincrement())
   firstName        String
   lastName         String
-  email            String?                @unique
-  phone            String?
-  classificationId Int
-  classification   EmployeeClassification @relation(fields: [classificationId], references: [id], onDelete: Restrict)
-  levelId          Int
-  level            EmployeeLevelModel     @relation(fields: [levelId], references: [id], onDelete: Restrict)
-  hireDate         DateTime?
-  active           Boolean                @default(true)
-
-  // Enriquecidos desde Excel
-  address         String?
-  city            String?
-  state           String?
-  zip             String?
-  terminationDate DateTime?
-
-  // Relación con entregas (cascade delete)
-  deliveries Delivery[]
-
-  // Relación con usuario (set null when user is deleted)
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId Int?
-
-  // Relación con proyectos (asignaciones) - cascade delete
-  projectAssignments EmployeeProjectAssignment[]
-
-  // Timesheets - cascade delete
+  address          String?
+  city             String?
   dailyTimeEntries DailyTimeEntry[]
+  classifications  EmployeeClassification[]
+  payrolls         Payroll[]
   weeklyTimecards  WeeklyTimecard[]
+}
 
-  // Historial de clasificación - cascade delete
-  classHistory EmployeeClassHistory[]
-  Payroll      Payroll[]
+model Classification {
+  id              Int                      @id @default(autoincrement())
+  name            String
+  craftCode       String
+  payRate         Float
+  effectiveDate   DateTime
+  employeeHistory EmployeeClassification[]
 }
 
 model EmployeeClassification {
-  id          Int                    @id @default(autoincrement())
-  name        String
-  description String?
-  employees   Employee[]
-  history     EmployeeClassHistory[]
+  id               Int            @id @default(autoincrement())
+  classificationId Int
+  employeeId       Int
+  endDate          DateTime?
+  startDate        DateTime
+  classification   Classification @relation(fields: [classificationId], references: [id])
+  employee         Employee       @relation(fields: [employeeId], references: [id])
 }
 
-model EmployeeLevelModel {
-  id        Int        @id @default(autoincrement())
-  name      String
-  employees Employee[]
-}
-
-// ==== PROJECTS & CONTRACTS ====
-model Project {
-  id        Int               @id @default(autoincrement())
-  jobNumber String            @unique
-  name      String
-  client    String
-  startDate DateTime?
-  endDate   DateTime?
-  status    ProjectStatusEnum @default(PLANNED)
-
-  // Relaciones 1:1 con deadlines - cascade delete
-  contract  Contract?
-  bonding   Bonding?
-  insurance Insurance?
-  license   License?
-
-  // Relaciones 1:N - cascade delete
-  estimates        Estimate[]
-  billings         Billing[]
-  materials        MaterialOrder[]
-  CertifiedPayroll CertifiedPayroll[]
-  documents        Document[]
-  payrolls         Payroll[]
-
-  // Relación con empleados (asignaciones) - cascade delete
-  employeeAssignments EmployeeProjectAssignment[]
-  Task                Task[]
-  DailyTimeEntry      DailyTimeEntry[]
-  WeeklyTimecard      WeeklyTimecard[]
-  MonthlyBilling      MonthlyBilling[]
-
-  // Set null when status reference is deleted
-  ProjectStatusRef   ProjectStatusRef? @relation(fields: [projectStatusRefId], references: [id], onDelete: SetNull)
-  projectStatusRefId Int?
-}
-
-// ==== BONDING ====
-model Bonding {
-  id        Int       @id @default(autoincrement())
-  projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  deadline  DateTime?
-}
-
-// ==== INSURANCE ====
-model Insurance {
-  id        Int       @id @default(autoincrement())
-  projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  deadline  DateTime?
-}
-
-// ==== LICENSE ====
-model License {
-  id        Int       @id @default(autoincrement())
-  projectId Int       @unique
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  deadline  DateTime?
-}
-
-// ==== PAYROLL ====
-model Payroll {
-  id         Int      @id @default(autoincrement())
-  projectId  Int
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  amount     Float
-  weekStart  DateTime
-  weekEnd    DateTime
-}
-
-// ==== DOCUMENTS ====
-model Document {
-  id         Int      @id @default(autoincrement())
-  projectId  Int
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name       String
-  type       String
-  url        String
-  uploadedAt DateTime @default(now())
-}
-
-model Contract {
-  id                Int       @id @default(autoincrement())
-  projectId         Int       @unique
-  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  bondingDeadline   DateTime?
-  insuranceDeadline DateTime?
-  licenseDeadline   DateTime?
-  payrollDeadline   DateTime?
-  materialsDeadline DateTime?
-}
-
-// Tabla intermedia para asignar empleados a proyectos
-model EmployeeProjectAssignment {
-  id         Int         @id @default(autoincrement())
-  employeeId Int
-  projectId  Int
-  role       ProjectRole @default(WORKER)
-  assignedAt DateTime    @default(now())
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([employeeId, projectId]) // evita duplicados
-}
-
-// ==== ESTIMATES ====
-model Estimate {
-  id          Int      @id @default(autoincrement())
-  projectId   Int
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  description String
-  amount      Float
-  createdAt   DateTime @default(now())
-
-  // Enriquecidos (tblEstimates/tblEstimators/tblEstimateStatus)
-  estimatorId Int?
-  estimator   User?              @relation(fields: [estimatorId], references: [id], onDelete: SetNull)
-  status      String?
-  notes       String?
-  statusRefId Int?
-  statusRef   EstimateStatusRef? @relation(fields: [statusRefId], references: [id], onDelete: SetNull)
-}
-
-// ==== BILLING ====
-model Billing {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  period    String
-  amount    Float
-  createdAt DateTime @default(now())
-
-  // Enriquecidos (tblBilling)
-  invoiceNumber String?
-  dueDate       DateTime?
-  notes         String?
-}
-
-// ==== CERTIFIED PAYROLL ====
-model CertifiedPayroll {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  weekStart DateTime
-  weekEnd   DateTime
-  createdAt DateTime @default(now())
-}
-
-// ==== MATERIAL ORDERS ====
-model MaterialOrder {
-  id          Int         @id @default(autoincrement())
-  projectId   Int
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  description String
-  status      OrderStatus @default(SUBMITTED)
-  submittedAt DateTime? // fecha submittal
-  approvedAt  DateTime? // aprobación GC
-  orderedAt   DateTime? // fecha ordenado
-  officeETA   DateTime? // fecha entrega oficina
-  siteETA     DateTime? // fecha entrega sitio
-  deliveries  Delivery[]
-}
-
-// ==== DELIVERIES ====
-model Delivery {
-  id              Int           @id @default(autoincrement())
-  materialOrder   MaterialOrder @relation(fields: [materialOrderId], references: [id], onDelete: Cascade)
-  materialOrderId Int
-
-  requestedBy   User @relation("RequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
-  requestedById Int
-
-  driver   User @relation("Driver", fields: [driverId], references: [id], onDelete: Restrict)
-  driverId Int
-
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  vehicleId Int
-
-  scheduledDate DateTime
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relación con usuario creador (set null when user is deleted)
-  User   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId Int?
-
-  // Relación con empleado (set null when employee is deleted)
-  Employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  employeeId Int?
-}
-
-// ==== VEHICLES ====
-model Vehicle {
-  id        Int      @id @default(autoincrement())
-  plate     String   @unique
-  model     String
-  capacity  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  deliveries Delivery[]
-}
-
-// ==== NUEVOS MODELOS DESDE EXCEL ====
-
-// TAREAS (tblTasks)
-model Task {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  name           String // TaskName
-  assignedToId   Int? // AssignedTo -> User.id (si aplica)
-  assignedTo     User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-  assignedAt     DateTime? // TaskDateAssigned
-  dueDate        DateTime? // DueDate
-  status         String? // Status (texto)
-  completionDate DateTime? // CompletionDate
-  notes          String? // Notes
-}
-
-// PARTES DIARIAS (tblDailyTimeEntries)
 model DailyTimeEntry {
   id            Int      @id @default(autoincrement())
   employeeId    Int
@@ -361,75 +114,164 @@ model DailyTimeEntry {
   workDate      DateTime
   hoursWorked   Float
   overtimeHours Float?
-  notes         String?
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  project       Project  @relation(fields: [projectId], references: [id])
 }
 
-// TARJETA SEMANAL (tblWeeklyTimecards)
 model WeeklyTimecard {
-  id         Int      @id @default(autoincrement())
-  employeeId Int
-  projectId  Int
-  weekStart  DateTime // WeekStartDate
-  totalHours Float?
-  notes      String?
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  employeeId    Int
+  projectId     Int
+  notes         String?
+  weekStartDate DateTime
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  project       Project  @relation(fields: [projectId], references: [id])
 }
 
-// AGREGADOS MENSUALES (tblMonthlyBilling)
-model MonthlyBilling {
-  id        Int   @id @default(autoincrement())
-  year      Int
-  month     Int
+model Payroll {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  createdAt   DateTime @default(now())
+  deductions  Float
+  grossPay    Float
+  netPay      Float
+  periodEnd   DateTime
+  periodStart DateTime
+  totalHours  Float
+  employee    Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Bonding {
+  id        Int      @id @default(autoincrement())
   projectId Int
   amount    Float
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, year, month])
+  createdAt DateTime @default(now())
+  endDate   DateTime
+  provider  String
+  startDate DateTime
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
-// HISTORIAL DE CLASIFICACIÓN (tblEmployeeClassHistory)
-model EmployeeClassHistory {
-  id               Int       @id @default(autoincrement())
-  employeeId       Int
-  classificationId Int
-  startDate        DateTime
-  endDate          DateTime?
-  reason           String?
-
-  employee       Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  classification EmployeeClassification @relation(fields: [classificationId], references: [id], onDelete: Restrict)
+model Insurance {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  coverage     String
+  createdAt    DateTime @default(now())
+  endDate      DateTime
+  policyNumber String
+  provider     String
+  startDate    DateTime
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
-// CATÁLOGO INFORMATIVO DE ESTADO DE PROYECTO (no reemplaza enums)
-model ProjectStatusRef {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique // p.ej. "IN_PROGRESS"
-  name        String
-  description String?
-  projects    Project[]
+model License {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  createdAt DateTime @default(now())
+  issuedBy  String
+  number    String
+  type      String
+  validFrom DateTime
+  validTo   DateTime
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
-// CATÁLOGO INFORMATIVO DE ESTADO DE ESTIMATE (no reemplaza enums)
-model EstimateStatusRef {
-  id          Int        @id @default(autoincrement())
-  code        String     @unique // p.ej. "SUBMITTED"
-  name        String
-  description String?
-  estimates   Estimate[]
+model Document {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  name       String
+  url        String
+  uploadedAt DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
-// STAGING OPCIONAL: ESTIMADORES EXTERNOS (tblEstimators)
-model EstimatorExternal {
-  id     Int     @id @default(autoincrement())
-  name   String?
-  email  String? @unique
-  userId Int?
+model MaterialRequest {
+  id            Int             @id @default(autoincrement())
+  projectId     Int
+  material      String
+  quantity      Float
+  status        MaterialStatus  @default(PENDING)
+  requestedBy   Int
+  approvedBy    Int?
+  requestedAt   DateTime        @default(now())
+  approvedAt    DateTime?
+  MaterialOrder MaterialOrder[]
+  approver      User?           @relation("Approver", fields: [approvedBy], references: [id])
+  project       Project         @relation(fields: [projectId], references: [id])
+  requester     User            @relation("Requester", fields: [requestedBy], references: [id])
+}
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+model MaterialOrder {
+  id              Int             @id @default(autoincrement())
+  requestId       Int
+  supplier        String
+  orderDate       DateTime        @default(now())
+  status          OrderStatus     @default(PENDING)
+  description     String?
+  quantity        Float?
+  unitPrice       Float?
+  totalAmount     Float?
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  orderedAt       DateTime?
+  expectedDelivery DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  Delivery        Delivery[]
+  materialRequest MaterialRequest @relation(fields: [requestId], references: [id])
+}
+
+model Delivery {
+  id               Int            @id @default(autoincrement())
+  deliveredAt      DateTime?
+  orderId          Int
+  quantityReceived Float
+  status           DeliveryStatus @default(PENDING)
+  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id])
+}
+
+enum DeliveryStatus {
+  PENDING
+  RECEIVED
+  PARTIAL
+  DAMAGED
+}
+
+enum OrderStatus {
+  PENDING
+  ORDERED
+  IN_TRANSIT
+  DELIVERED
+}
+
+enum MaterialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Role {
+  ADMIN
+  USER
+  PROJECT_MANAGER
+  OWNER
+  ESTIMATOR
+  BILLING
+  PAYROLL
+}
+
+enum EstimateStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AWARDED
+  REJECTED
+  DRAFT
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
 }

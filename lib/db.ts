@@ -27,7 +27,8 @@ export const projectDb = {
         documents: true,
         estimates: true,
         billings: true,
-        employeeAssignments: { include: { employee: true } }
+        MaterialRequest: { include: { MaterialOrder: true } },
+        manager: true
       }
     }),
   create: (data: any) => prisma.project.create({ data }),
@@ -171,21 +172,44 @@ export const documentDb = {
   delete: (id: number) => prisma.document.delete({ where: { id } })
 }
 
+// ======================= MATERIAL REQUESTS =======================
+export const materialRequestDb = {
+  findAll: () => prisma.materialRequest.findMany(),
+  findById: (id: number) => prisma.materialRequest.findUnique({ where: { id } }),
+  findByProjectId: (projectId: number) =>
+    prisma.materialRequest.findMany({ 
+      where: { projectId }, 
+      orderBy: { requestedAt: 'desc' },
+      include: { MaterialOrder: true }
+    }),
+  create: (data: any) => prisma.materialRequest.create({ data }),
+  update: (id: number, data: any) =>
+    prisma.materialRequest.update({ where: { id }, data }),
+  delete: (id: number) => prisma.materialRequest.delete({ where: { id } })
+}
+
 // ======================= MATERIAL ORDERS =======================
 export const materialOrderDb = {
-  findAll: () => prisma.materialOrder.findMany(),
-  findById: (id: number) => prisma.materialOrder.findUnique({ where: { id } }),
+  findAll: () => prisma.materialOrder.findMany({ include: { materialRequest: true } }),
+  findById: (id: number) => prisma.materialOrder.findUnique({ 
+    where: { id },
+    include: { materialRequest: true }
+  }),
   findByProjectId: (projectId: number) =>
-    prisma.materialOrder.findMany({ where: { projectId }, orderBy: { id: 'desc' } }),
-  create: (data: any) => prisma.materialOrder.create({ data }),
+    prisma.materialOrder.findMany({ 
+      where: { materialRequest: { projectId } }, 
+      orderBy: { orderDate: 'desc' },
+      include: { materialRequest: true }
+    }),
+  create: (data: any) => prisma.materialOrder.create({ data, include: { materialRequest: true } }),
   update: (id: number, data: any) =>
-    prisma.materialOrder.update({ where: { id }, data }),
+    prisma.materialOrder.update({ where: { id }, data, include: { materialRequest: true } }),
   delete: (id: number) => prisma.materialOrder.delete({ where: { id } })
 }
 
 // ======================= AUTH =======================
 export async function validateUser(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await userDb.findByEmail(email)
   if (!user) return null
   // Comparación simple, reemplazar por hash si es necesario
   if (user.password !== password) return null

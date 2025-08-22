@@ -5,7 +5,8 @@ import {
   licenseDb,
   documentDb,
   employeeDb,
-  materialOrderDb
+  materialOrderDb,
+  materialRequestDb
 } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { OrderStatus } from '@prisma/client'
@@ -45,10 +46,8 @@ export async function resendVerification(prevState: any, formData: FormData) {
 // Bonding Actions
 export async function createBonding(data: {
   projectId: number
-  provider: string
   amount: number
-  startDate: Date
-  endDate: Date
+  deadline: Date
 }) {
   try {
     const bonding = await bondingDb.create(data)
@@ -158,11 +157,31 @@ export async function getDocumentsByProject(projectId: number) {
   }
 }
 
-// Material Order Actions
-export async function createMaterialOrder(data: {
+// Material Request Actions
+export async function createMaterialRequest(data: {
   projectId: number
-  description: string
-  status?: OrderStatus
+  material: string
+  quantity: number
+  requestedBy: number
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED'
+}) {
+  try {
+    const request = await materialRequestDb.create(data)
+    revalidatePath(`/projects/${data.projectId}`)
+    return { success: true, data: request }
+  } catch (error) {
+    console.error('Error creating material request:', error)
+    return { success: false, error: 'Failed to create material request' }
+  }
+}
+
+// Material Order Actions - Updated to work with frontend format
+export async function createMaterialOrder(data: {
+  projectId?: number
+  requestId?: number
+  supplier?: string
+  description?: string
+  status?: 'PENDING' | 'ORDERED' | 'IN_TRANSIT' | 'DELIVERED' | 'SUBMITTED' | 'APPROVED' | 'SCHEDULED' | 'DELIVERED_TO_OFFICE' | 'DELIVERED_TO_SITE'
   submittedAt?: Date
   approvedAt?: Date
   orderedAt?: Date
@@ -170,8 +189,48 @@ export async function createMaterialOrder(data: {
   siteETA?: Date
 }) {
   try {
-    const order = await materialOrderDb.create(data)
-    revalidatePath(`/projects/${data.projectId}`)
+    let requestId = data.requestId
+    let supplier = data.supplier || 'TBD'
+    
+    // If no requestId provided (old frontend format), create a material request first
+    if (!requestId && data.projectId && data.description) {
+      // Create a material request first
+      const materialRequest = await materialRequestDb.create({
+        projectId: data.projectId,
+        material: data.description,
+        quantity: 1, // Default quantity
+        requestedBy: 1, // Default user ID - you may want to get this from session
+        status: 'PENDING'
+      })
+      requestId = materialRequest.id
+    }
+    
+    if (!requestId) {
+      throw new Error('RequestId is required')
+    }
+    
+    // Map old status values to new ones
+    let mappedStatus = data.status
+    if (data.status === 'SUBMITTED' || data.status === 'APPROVED' || data.status === 'SCHEDULED') {
+      mappedStatus = 'PENDING'
+    } else if (data.status === 'DELIVERED_TO_OFFICE' || data.status === 'DELIVERED_TO_SITE') {
+      mappedStatus = 'DELIVERED'
+    }
+    
+    const order = await materialOrderDb.create({
+      requestId,
+      supplier,
+      status: mappedStatus || 'PENDING'
+    })
+    
+    // Get the project ID from the material request for revalidation
+    const materialRequest = await materialRequestDb.findById(requestId)
+    if (materialRequest) {
+      revalidatePath(`/projects/${materialRequest.projectId}`)
+    } else if (data.projectId) {
+      revalidatePath(`/projects/${data.projectId}`)
+    }
+    
     return { success: true, data: order }
   } catch (error) {
     console.error('Error creating material order:', error)
@@ -179,10 +238,18 @@ export async function createMaterialOrder(data: {
   }
 }
 
+export async function getMaterialRequestsByProject(projectId: number) {
+  try {
+    return await materialRequestDb.findByProjectId(projectId)
+  } catch (error) {
+    console.error('Error fetching material requests:', error)
+    return []
+  }
+}
+
 export async function getMaterialOrdersByProject(projectId: number) {
   try {
-    const orders = await materialOrderDb.findAll()
-    return orders.filter(o => o.projectId === projectId)
+    return await materialOrderDb.findByProjectId(projectId)
   } catch (error) {
     console.error('Error fetching material orders:', error)
     return []
