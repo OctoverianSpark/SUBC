@@ -30,7 +30,7 @@ model Project {
   startDate       DateTime?
   endDate         DateTime?
   jobNumber       String
-  managerId       Int?
+  userId          Int?
   status          ProjectStatus     @default(PLANNED)
   billings        Billing[]
   bondings        Bonding[]
@@ -40,7 +40,7 @@ model Project {
   insurances      Insurance[]
   licenses        License[]
   MaterialRequest MaterialRequest[]
-  manager         User?             @relation(fields: [managerId], references: [id])
+  manager         User?             @relation(fields: [userId], references: [id])
   tasks           Task[]
   WeeklyTimecard  WeeklyTimecard[]
 }
