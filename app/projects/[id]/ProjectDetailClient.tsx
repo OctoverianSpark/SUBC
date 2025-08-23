@@ -1910,7 +1910,7 @@ export default function ProjectDetailClient ({
                           Amount: ${b.amount?.toLocaleString()}
                         </div>
                         <div className='text-sm text-gray-500'>
-                          {formatDate(b.startDate)} - {formatDate(b.endDate)}
+                          Deadline: {formatDate(b.deadline)}
                         </div>
                       </div>
                       <div className='flex gap-2 ml-4'>
