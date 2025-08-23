@@ -62,7 +62,8 @@ function BondingForm ({ projectId, onSubmit, onCancel }) {
       const result = await createBonding({
         projectId,
         amount: parseFloat(formData.amount),
-        deadline: new Date(formData.deadline)
+        deadline: new Date(formData.deadline),
+        provider: formData.provider
       })
 
       if (result.success) {
@@ -601,7 +602,11 @@ function MaterialOrderForm ({ projectId, onSubmit, onCancel }) {
           <input
             type='number'
             name='totalAmount'
-            value={formData.totalAmount || (Number(formData.unitPrice) * Number(formData.quantity) || 0)}
+            value={
+              formData.totalAmount ||
+              Number(formData.unitPrice) * Number(formData.quantity) ||
+              0
+            }
             onChange={handleChange}
             min='0'
             step='0.01'
@@ -757,7 +762,9 @@ function EditBondingForm ({ bonding, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     provider: bonding.provider || '',
     amount: bonding.amount?.toString() || '',
-    deadline: bonding.deadline ? new Date(bonding.deadline).toISOString().split('T')[0] : ''
+    deadline: bonding.deadline
+      ? new Date(bonding.deadline).toISOString().split('T')[0]
+      : ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -868,8 +875,12 @@ function EditInsuranceForm ({ insurance, onSubmit, onCancel }) {
     provider: insurance.provider || '',
     policyNumber: insurance.policyNumber || '',
     coverage: insurance.coverage || '',
-    startDate: insurance.startDate ? new Date(insurance.startDate).toISOString().split('T')[0] : '',
-    endDate: insurance.endDate ? new Date(insurance.endDate).toISOString().split('T')[0] : ''
+    startDate: insurance.startDate
+      ? new Date(insurance.startDate).toISOString().split('T')[0]
+      : '',
+    endDate: insurance.endDate
+      ? new Date(insurance.endDate).toISOString().split('T')[0]
+      : ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -1016,8 +1027,12 @@ function EditLicenseForm ({ license, onSubmit, onCancel }) {
     type: license.type || '',
     number: license.number || '',
     issuedBy: license.issuedBy || '',
-    validFrom: license.validFrom ? new Date(license.validFrom).toISOString().split('T')[0] : '',
-    validTo: license.validTo ? new Date(license.validTo).toISOString().split('T')[0] : ''
+    validFrom: license.validFrom
+      ? new Date(license.validFrom).toISOString().split('T')[0]
+      : '',
+    validTo: license.validTo
+      ? new Date(license.validTo).toISOString().split('T')[0]
+      : ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -1168,10 +1183,18 @@ function EditMaterialOrderForm ({ materialOrder, onSubmit, onCancel }) {
     unitPrice: materialOrder.unitPrice?.toString() || '',
     totalAmount: materialOrder.totalAmount?.toString() || '',
     status: materialOrder.status || 'PENDING',
-    submittedAt: materialOrder.submittedAt ? new Date(materialOrder.submittedAt).toISOString().split('T')[0] : '',
-    approvedAt: materialOrder.approvedAt ? new Date(materialOrder.approvedAt).toISOString().split('T')[0] : '',
-    orderedAt: materialOrder.orderedAt ? new Date(materialOrder.orderedAt).toISOString().split('T')[0] : '',
-    expectedDelivery: materialOrder.expectedDelivery ? new Date(materialOrder.expectedDelivery).toISOString().split('T')[0] : '',
+    submittedAt: materialOrder.submittedAt
+      ? new Date(materialOrder.submittedAt).toISOString().split('T')[0]
+      : '',
+    approvedAt: materialOrder.approvedAt
+      ? new Date(materialOrder.approvedAt).toISOString().split('T')[0]
+      : '',
+    orderedAt: materialOrder.orderedAt
+      ? new Date(materialOrder.orderedAt).toISOString().split('T')[0]
+      : '',
+    expectedDelivery: materialOrder.expectedDelivery
+      ? new Date(materialOrder.expectedDelivery).toISOString().split('T')[0]
+      : '',
     notes: materialOrder.notes || ''
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -1189,20 +1212,34 @@ function EditMaterialOrderForm ({ materialOrder, onSubmit, onCancel }) {
         supplier: formData.supplier,
         description: formData.description,
         quantity: formData.quantity ? parseFloat(formData.quantity) : undefined,
-        unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : undefined,
-        totalAmount: formData.totalAmount ? parseFloat(formData.totalAmount) : undefined,
+        unitPrice: formData.unitPrice
+          ? parseFloat(formData.unitPrice)
+          : undefined,
+        totalAmount: formData.totalAmount
+          ? parseFloat(formData.totalAmount)
+          : undefined,
         status: formData.status,
-        submittedAt: formData.submittedAt ? new Date(formData.submittedAt) : undefined,
-        approvedAt: formData.approvedAt ? new Date(formData.approvedAt) : undefined,
-        orderedAt: formData.orderedAt ? new Date(formData.orderedAt) : undefined,
-        expectedDelivery: formData.expectedDelivery ? new Date(formData.expectedDelivery) : undefined,
+        submittedAt: formData.submittedAt
+          ? new Date(formData.submittedAt)
+          : undefined,
+        approvedAt: formData.approvedAt
+          ? new Date(formData.approvedAt)
+          : undefined,
+        orderedAt: formData.orderedAt
+          ? new Date(formData.orderedAt)
+          : undefined,
+        expectedDelivery: formData.expectedDelivery
+          ? new Date(formData.expectedDelivery)
+          : undefined,
         notes: formData.notes || undefined
       })
 
       if (result.success) {
         onSubmit(result.data)
       } else {
-        alert(result.error || 'Error updating material order. Please try again.')
+        alert(
+          result.error || 'Error updating material order. Please try again.'
+        )
       }
     } catch (error) {
       console.error('Error updating material order:', error)
@@ -1291,7 +1328,11 @@ function EditMaterialOrderForm ({ materialOrder, onSubmit, onCancel }) {
           <input
             type='number'
             name='totalAmount'
-            value={formData.totalAmount || (Number(formData.unitPrice) * Number(formData.quantity) || 0)}
+            value={
+              formData.totalAmount ||
+              Number(formData.unitPrice) * Number(formData.quantity) ||
+              0
+            }
             onChange={handleChange}
             min='0'
             step='0.01'
@@ -1721,36 +1762,47 @@ export default function ProjectDetailClient ({
 
   // Handle edit submissions
   const handleBondingEdit = bondingData => {
-    setProjectBondings(prev => prev.map(b => b.id === bondingData.id ? bondingData : b))
+    setProjectBondings(prev =>
+      prev.map(b => (b.id === bondingData.id ? bondingData : b))
+    )
     setActiveModal(null)
   }
 
   const handleInsuranceEdit = insuranceData => {
-    setProjectInsurances(prev => prev.map(i => i.id === insuranceData.id ? insuranceData : i))
+    setProjectInsurances(prev =>
+      prev.map(i => (i.id === insuranceData.id ? insuranceData : i))
+    )
     setActiveModal(null)
   }
 
   const handleLicenseEdit = licenseData => {
-    setProjectLicenses(prev => prev.map(l => l.id === licenseData.id ? licenseData : l))
+    setProjectLicenses(prev =>
+      prev.map(l => (l.id === licenseData.id ? licenseData : l))
+    )
     setActiveModal(null)
   }
 
   const handleDocumentEdit = documentData => {
-    setProjectDocuments(prev => prev.map(d => d.id === documentData.id ? documentData : d))
+    setProjectDocuments(prev =>
+      prev.map(d => (d.id === documentData.id ? documentData : d))
+    )
     setActiveModal(null)
   }
 
   const handleMaterialOrderEdit = orderData => {
-    setProjectMaterialOrders(prev => prev.map(o => o.id === orderData.id ? orderData : o))
+    setProjectMaterialOrders(prev =>
+      prev.map(o => (o.id === orderData.id ? orderData : o))
+    )
     setActiveModal(null)
   }
 
   // Helper functions to find items by ID
-  const findBondingById = (id) => projectBondings.find(b => b.id === id)
-  const findInsuranceById = (id) => projectInsurances.find(i => i.id === id)
-  const findLicenseById = (id) => projectLicenses.find(l => l.id === id)
-  const findDocumentById = (id) => projectDocuments.find(d => d.id === id)
-  const findMaterialOrderById = (id) => projectMaterialOrders.find(o => o.id === id)
+  const findBondingById = id => projectBondings.find(b => b.id === id)
+  const findInsuranceById = id => projectInsurances.find(i => i.id === id)
+  const findLicenseById = id => projectLicenses.find(l => l.id === id)
+  const findDocumentById = id => projectDocuments.find(d => d.id === id)
+  const findMaterialOrderById = id =>
+    projectMaterialOrders.find(o => o.id === id)
 
   const handleModalClose = () => {
     setActiveModal(null)
@@ -1916,7 +1968,9 @@ export default function ProjectDetailClient ({
                       </div>
                       <div className='flex gap-2 ml-4'>
                         <button
-                          onClick={() => setActiveModal(`editInsurance-${i.id}`)}
+                          onClick={() =>
+                            setActiveModal(`editInsurance-${i.id}`)
+                          }
                           className='text-green-600 hover:text-green-800 text-sm font-medium'
                         >
                           Edit
@@ -1957,12 +2011,15 @@ export default function ProjectDetailClient ({
                   >
                     <div className='flex justify-between items-start'>
                       <div className='flex-1'>
-                        <div className='font-medium text-gray-900'>{l.type}</div>
+                        <div className='font-medium text-gray-900'>
+                          {l.type}
+                        </div>
                         <div className='text-sm text-gray-700'>
                           #{l.number} | Issued by: {l.issuedBy}
                         </div>
                         <div className='text-sm text-gray-500'>
-                          Valid: {formatDate(l.validFrom)} - {formatDate(l.validTo)}
+                          Valid: {formatDate(l.validFrom)} -{' '}
+                          {formatDate(l.validTo)}
                         </div>
                       </div>
                       <div className='flex gap-2 ml-4'>
@@ -2010,7 +2067,9 @@ export default function ProjectDetailClient ({
                       <div className='flex-1'>
                         <div className='font-medium text-gray-900'>
                           {/* Display material from MaterialRequest or description from MaterialOrder */}
-                          {o.materialRequest?.material || o.description || 'Material Order'}
+                          {o.materialRequest?.material ||
+                            o.description ||
+                            'Material Order'}
                         </div>
                         <div className='text-sm text-gray-700'>
                           Supplier: {o.supplier} | Status: {o.status}
@@ -2021,7 +2080,10 @@ export default function ProjectDetailClient ({
                             </span>
                           )}
                           {o.totalAmount && (
-                            <span> | Total: ${o.totalAmount.toLocaleString()}</span>
+                            <span>
+                              {' '}
+                              | Total: ${o.totalAmount.toLocaleString()}
+                            </span>
                           )}
                         </div>
                         <div className='text-sm text-gray-500'>
@@ -2034,9 +2096,14 @@ export default function ProjectDetailClient ({
                           )}
                           {o.materialRequest && (
                             <div className='mt-1 text-xs'>
-                              Requested by: {o.materialRequest.requester?.name || 'User'} on {formatDate(o.materialRequest.requestedAt)}
+                              Requested by:{' '}
+                              {o.materialRequest.requester?.name || 'User'} on{' '}
+                              {formatDate(o.materialRequest.requestedAt)}
                               {o.materialRequest.quantity && (
-                                <span> | Requested Qty: {o.materialRequest.quantity}</span>
+                                <span>
+                                  {' '}
+                                  | Requested Qty: {o.materialRequest.quantity}
+                                </span>
                               )}
                             </div>
                           )}
@@ -2049,7 +2116,9 @@ export default function ProjectDetailClient ({
                       </div>
                       <div className='flex gap-2 ml-4'>
                         <button
-                          onClick={() => setActiveModal(`editMaterialOrder-${o.id}`)}
+                          onClick={() =>
+                            setActiveModal(`editMaterialOrder-${o.id}`)
+                          }
                           className='text-red-600 hover:text-red-800 text-sm font-medium'
                         >
                           Edit
@@ -2090,7 +2159,9 @@ export default function ProjectDetailClient ({
                   >
                     <div className='flex justify-between items-start'>
                       <div className='flex-1'>
-                        <div className='font-medium text-gray-900'>{d.name}</div>
+                        <div className='font-medium text-gray-900'>
+                          {d.name}
+                        </div>
                         <div className='text-sm text-gray-500'>
                           Uploaded: {formatDate(d.uploadedAt)}
                         </div>

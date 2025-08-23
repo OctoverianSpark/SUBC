@@ -47,7 +47,8 @@ export async function resendVerification(prevState: any, formData: FormData) {
 export async function createBonding(data: {
   projectId: number
   amount: number
-  deadline: Date
+  deadline: Date,
+  provider: string
 }) {
   try {
     const bonding = await bondingDb.create(data)
