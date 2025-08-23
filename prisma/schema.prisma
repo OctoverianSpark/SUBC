@@ -74,7 +74,7 @@ model Billing {
   issuedAt      DateTime  @default(now())
   invoiceNumber String    @unique
   paid          Boolean   @default(false)
-  project       Project   @relation(fields: [projectId], references: [id])
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Employee {
