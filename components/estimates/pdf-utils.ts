@@ -15,5 +15,6 @@ export function downloadEstimatePDF(
   doc.text(`Amount: $${estimate.amount}`, 14, 51)
   doc.text(`Status: ${estimate.status}`, 14, 59)
   doc.text(`Created: ${new Date(estimate.createdAt).toLocaleDateString()}`, 14, 67)
+  doc.text(`This document is a template and may differ from the final result.`, 14, 80)
   doc.save(`estimate-${estimate.id}.pdf`)
 }

@@ -8,31 +8,29 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
+  id        Int               @id @default(autoincrement())
+  email     String            @unique
   password  String
-  role      Role     @default(USER)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  Estimate Estimate[]
-  projects Project[]
-  tasks    Task[]
-
-  // Relaciones a MaterialRequest
-  requests  MaterialRequest[] @relation("Requester")
+  role      Role              @default(USER)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  name      String
+  active    Boolean           @default(true)
+  Estimate  Estimate[]
   approvals MaterialRequest[] @relation("Approver")
+  requests  MaterialRequest[] @relation("Requester")
+  projects  Project[]
+  tasks     Task[]
 }
 
 model Project {
   id              Int               @id @default(autoincrement())
-  jobNumber       String
   name            String
-  managerId       Int?
+  client          String
   startDate       DateTime?
   endDate         DateTime?
+  jobNumber       String
+  userId          Int?
   status          ProjectStatus     @default(PLANNED)
   billings        Billing[]
   bondings        Bonding[]
@@ -41,41 +39,43 @@ model Project {
   estimates       Estimate[]
   insurances      Insurance[]
   licenses        License[]
-  manager         User?             @relation(fields: [managerId], references: [id])
+  MaterialRequest MaterialRequest[]
+  manager         User?             @relation(fields: [userId], references: [id])
   tasks           Task[]
   WeeklyTimecard  WeeklyTimecard[]
-  MaterialRequest MaterialRequest[]
 }
 
 model Task {
   id           Int       @id @default(autoincrement())
+  projectId    Int
   name         String
   assignedToId Int?
   dueDate      DateTime?
-  projectId    Int
   assignedTo   User?     @relation(fields: [assignedToId], references: [id])
-  project      Project   @relation(fields: [projectId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Estimate {
   id          Int            @id @default(autoincrement())
   projectId   Int
-  estimatorId Int?
   amount      Float
   createdAt   DateTime       @default(now())
+  estimatorId Int?
   status      EstimateStatus
   estimator   User?          @relation(fields: [estimatorId], references: [id])
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Billing {
-  id        Int       @id @default(autoincrement())
-  projectId Int
-  dueDate   DateTime?
-  amount    Float
-  issuedAt  DateTime  @default(now())
-  paid      Boolean   @default(false)
-  project   Project   @relation(fields: [projectId], references: [id])
+  id            Int       @id @default(autoincrement())
+  projectId     Int
+  amount        Float
+  createdAt     DateTime  @default(now())
+  dueDate       DateTime?
+  issuedAt      DateTime  @default(now())
+  invoiceNumber String    @unique
+  paid          Boolean   @default(false)
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Employee {
@@ -101,10 +101,9 @@ model Classification {
 
 model EmployeeClassification {
   id               Int            @id @default(autoincrement())
-  employeeId       Int
   classificationId Int
-  startDate        DateTime
-  endDate          DateTime?
+  startDate        DateTime?
+  employeeId       Int
   classification   Classification @relation(fields: [classificationId], references: [id])
   employee         Employee       @relation(fields: [employeeId], references: [id])
 }
@@ -117,59 +116,61 @@ model DailyTimeEntry {
   hoursWorked   Float
   overtimeHours Float?
   employee      Employee @relation(fields: [employeeId], references: [id])
-  project       Project  @relation(fields: [projectId], references: [id])
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyTimecard {
   id            Int      @id @default(autoincrement())
   employeeId    Int
   projectId     Int
-  weekStartDate DateTime
   notes         String?
+  weekStartDate DateTime
   employee      Employee @relation(fields: [employeeId], references: [id])
-  project       Project  @relation(fields: [projectId], references: [id])
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Payroll {
   id          Int      @id @default(autoincrement())
   employeeId  Int
-  periodStart DateTime
-  periodEnd   DateTime
-  totalHours  Float
-  grossPay    Float
-  deductions  Float
-  netPay      Float
   createdAt   DateTime @default(now())
+  deductions  Float
+  grossPay    Float
+  netPay      Float
+  periodEnd   DateTime
+  periodStart DateTime
+  totalHours  Float
   employee    Employee @relation(fields: [employeeId], references: [id])
 }
 
 model Bonding {
   id        Int      @id @default(autoincrement())
   projectId Int
-  provider  String
   amount    Float
-  startDate DateTime
-  endDate   DateTime
+  createdAt DateTime @default(now())
+  deadline  DateTime
+  provider  String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Insurance {
   id           Int      @id @default(autoincrement())
   projectId    Int
-  provider     String
-  policyNumber String
   coverage     String
-  startDate    DateTime
+  createdAt    DateTime @default(now())
   endDate      DateTime
+  policyNumber String
+  provider     String
+  startDate    DateTime
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model License {
   id        Int      @id @default(autoincrement())
   projectId Int
-  type      String
-  number    String
+  createdAt DateTime @default(now())
   issuedBy  String
+  number    String
+  type      String
   validFrom DateTime
   validTo   DateTime
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -185,40 +186,49 @@ model Document {
 }
 
 model MaterialRequest {
-  id          Int            @id @default(autoincrement())
-  projectId   Int
-  material    String
-  quantity    Float
-  status      MaterialStatus @default(PENDING)
-  requestedBy Int
-  approvedBy  Int?
-
-  requestedAt DateTime  @default(now())
-  approvedAt  DateTime?
-
-  project       Project         @relation(fields: [projectId], references: [id])
-  requester     User            @relation("Requester", fields: [requestedBy], references: [id])
-  approver      User?           @relation("Approver", fields: [approvedBy], references: [id])
+  id            Int             @id @default(autoincrement())
+  projectId     Int
+  material      String
+  quantity      Float
+  status        MaterialStatus  @default(PENDING)
+  requestedBy   Int
+  approvedBy    Int?
+  requestedAt   DateTime        @default(now())
+  approvedAt    DateTime?
   MaterialOrder MaterialOrder[]
+  approver      User?           @relation("Approver", fields: [approvedBy], references: [id])
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requester     User            @relation("Requester", fields: [requestedBy], references: [id])
 }
 
 model MaterialOrder {
-  id              Int             @id @default(autoincrement())
-  requestId       Int
-  supplier        String
-  orderDate       DateTime        @default(now())
-  status          OrderStatus     @default(PENDING)
-  materialRequest MaterialRequest @relation(fields: [requestId], references: [id])
-  Delivery        Delivery[]
+  id               Int             @id @default(autoincrement())
+  requestId        Int
+  supplier         String
+  orderDate        DateTime        @default(now())
+  status           OrderStatus     @default(PENDING)
+  description      String?
+  quantity         Float?
+  unitPrice        Float?
+  totalAmount      Float?
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  orderedAt        DateTime?
+  expectedDelivery DateTime?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  Delivery         Delivery[]
+  materialRequest  MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
 
 model Delivery {
   id               Int            @id @default(autoincrement())
-  orderId          Int
   deliveredAt      DateTime?
+  orderId          Int
   quantityReceived Float
   status           DeliveryStatus @default(PENDING)
-  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id])
+  materialOrder    MaterialOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 enum DeliveryStatus {
@@ -243,12 +253,12 @@ enum MaterialStatus {
 
 enum Role {
   ADMIN
-  OWNER
+  USER
   PROJECT_MANAGER
+  OWNER
   ESTIMATOR
   BILLING
   PAYROLL
-  USER
 }
 
 enum EstimateStatus {

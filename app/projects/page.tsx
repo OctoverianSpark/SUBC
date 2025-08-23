@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Calendar, Edit, Trash2, Save, X } from 'lucide-react'
+import { Plus, Calendar, Edit, Trash2, Save, X, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { projectDb } from '@/lib/db'
 import { deleteProject, updateProject } from './actions'
@@ -34,7 +34,7 @@ export default async function ProjectsPage () {
   if (user?.role === 'ADMIN' || user?.role === 'OWNER') {
     projects = (await projectDb.findAll()).map(p => ({
       ...p,
-      managerId: p.managerId ?? undefined,
+      managerId: p.userId ?? undefined,
       startDate: p.startDate
         ? typeof p.startDate === 'string'
           ? p.startDate
@@ -49,10 +49,10 @@ export default async function ProjectsPage () {
     }))
   } else if (user?.role === 'PROJECT_MANAGER') {
     projects = (await projectDb.findAll())
-      .filter(p => p.managerId === user.id)
+      .filter(p => p.userId === user.id)
       .map(p => ({
         ...p,
-        managerId: p.managerId ?? undefined,
+        managerId: p.userId ?? undefined,
         startDate: p.startDate
           ? typeof p.startDate === 'string'
             ? p.startDate
@@ -235,6 +235,12 @@ export default async function ProjectsPage () {
                       </form>
                     </DialogContent>
                   </Dialog>
+
+                  <Link href={'/projects/' + project.id}>
+                    <Button size='sm' variant='outline'>
+                      <ArrowRight className='h-4 w-4 mr-1' /> View
+                    </Button>
+                  </Link>
                   <form action={handleDelete} className='inline'>
                     <input type='hidden' name='id' value={project.id} />
                     <Button size='sm' variant='destructive' type='submit'>

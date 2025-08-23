@@ -8,7 +8,6 @@ import EmployeeList from '@/components/employees/employee-list'
 
 export default async function EmployeesPage () {
   const employees = await employeeDb.findAll()
-
   const handleDelete = async (id: number) => {
     await deleteEmployee(id)
     // Optionally, you can add a toast notification or redirect after deletion

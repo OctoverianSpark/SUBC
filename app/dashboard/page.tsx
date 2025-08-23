@@ -4,28 +4,17 @@ import ProjectOverview from '@/components/dashboard/project-overview'
 import QuickActions from '@/components/dashboard/quick-actions'
 import RecentActivity from '@/components/dashboard/recent-activity'
 import { getAuthUser, requireAuthOrRedirect } from '@/lib/cookies'
-import { prisma } from '@/lib/db'
+import { prisma, userDb } from '@/lib/db'
 
 export default async function DashboardPage () {
   await requireAuthOrRedirect()
 
   const cookieUser = await getAuthUser()
+  console.log(cookieUser)
+
   let user = null
   if (cookieUser) {
-    user = await prisma.user.findUnique({ where: { id: cookieUser.id } })
-  }
-  if (!user) {
-    // fallback: usuario anónimo (no debería ocurrir si el middleware funciona)
-    user = {
-      id: 0,
-      name: 'Guest',
-      email: '',
-      password: '',
-      role: 'USER',
-      active: false,
-      createdAt: '',
-      updatedAt: ''
-    }
+    user = await userDb.findById(cookieUser.id)
   }
 
   return (

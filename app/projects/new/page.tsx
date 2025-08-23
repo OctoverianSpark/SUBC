@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { createProject } from './actions'
+import { getAuthUser } from '@/lib/cookies'
 
 export default function NewProjectPage () {
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function NewProjectPage () {
     jobNumber: '',
     startDate: '',
     endDate: '',
+    client: '',
     status: 'PLANNED'
   })
 
@@ -42,12 +44,12 @@ export default function NewProjectPage () {
     await createProject({
       name: form.name,
       jobNumber: form.jobNumber,
-      startDate: form.startDate
-        ? new Date(form.startDate).toISOString()
-        : undefined,
-      endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
-      status: form.status
+      startDate: form.startDate || undefined, // sin toISOString
+      endDate: form.endDate || undefined,
+      status: form.status,
+      client: form.client
     })
+
     toast({ title: 'Data Saved', description: 'Project has been created.' })
     router.push('/projects')
   }
@@ -90,6 +92,16 @@ export default function NewProjectPage () {
                 value={form.jobNumber}
                 onChange={handleChange}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor='client'>Client</Label>
+              <Input
+                id='client'
+                type='text'
+                value={form.client}
+                onChange={handleChange}
               />
             </div>
             <div className='flex gap-4'>

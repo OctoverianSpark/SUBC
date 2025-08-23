@@ -40,7 +40,7 @@ export default async function ProjectOverview () {
   let projects = await projectDb.findAll()
   let filteredProjects = projects
   if (user?.role === 'PROJECT_MANAGER') {
-    filteredProjects = projects.filter(p => p.managerId === user.id)
+    filteredProjects = projects.filter(p => p.userId === user.id)
   } else if (user?.role !== 'ADMIN' && user?.role !== 'OWNER') {
     filteredProjects = []
   }
