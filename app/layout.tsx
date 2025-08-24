@@ -46,6 +46,9 @@ html {
             <a href='/employees' className='hover:underline'>
               Employees
             </a>
+            <a href='/contracts' className='hover:underline'>
+              Contracts
+            </a>
             <LogoutButton className='ml-auto' />
           </nav>
         )}

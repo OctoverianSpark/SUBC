@@ -3,8 +3,11 @@ import ContractsList from '@/components/contracts/contracts-list'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { contractDb } from '@/lib/db'
 
 export default async function ContractsPage () {
+  const contracts = await contractDb.findAll()
+
   return (
     <div className='min-h-screen bg-background'>
       <main className='container mx-auto px-4 py-8'>
@@ -14,18 +17,12 @@ export default async function ContractsPage () {
               Contract Management
             </h1>
             <p className='text-muted-foreground mt-2'>
-              Review, approve, and manage project contracts
+              Review the information managed in the project contracts
             </p>
           </div>
-          <Link href='/contracts/new'>
-            <Button className='flex items-center space-x-2'>
-              <Plus className='h-4 w-4' />
-              <span>New Contract</span>
-            </Button>
-          </Link>
         </div>
 
-        <ContractsList />
+        <ContractsList contracts={contracts} />
       </main>
     </div>
   )
